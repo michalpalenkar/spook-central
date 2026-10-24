@@ -13,10 +13,15 @@ const LEGEND = {
 const SPAWN_MARKER = 'P'
 
 /**
- * Turns a room definition ({ id, grid: string[], entities?, exits? }) into
- * a tile grid. `P` in the grid marks the player spawn and is stored as empty.
+ * Turns a room definition into a tile grid:
+ * { id, grid: string[], entities?, exits?, area?, name?, origin? }.
+ *
+ * `P` in the grid marks the new-game player spawn and is stored as empty; a
+ * room has at most one (most have none). `origin` is the room's top-left
+ * corner in world tiles, which places it on the area map and lines up exits
+ * between neighbouring rooms.
  */
-export function parseRoom({ id, grid, entities = [], exits = [] }) {
+export function parseRoom({ id, grid, entities = [], exits = [], area = null, name = id, origin = { x: 0, y: 0 } }) {
   if (!grid?.length) throw new Error(`Room "${id}" has no rows`)
 
   const width = grid[0].length
@@ -36,9 +41,20 @@ export function parseRoom({ id, grid, entities = [], exits = [] }) {
     })
   })
 
-  if (spawns.length !== 1) {
-    throw new Error(`Room "${id}" needs exactly one spawn "${SPAWN_MARKER}", found ${spawns.length}`)
+  if (spawns.length > 1) {
+    throw new Error(`Room "${id}" has ${spawns.length} spawns "${SPAWN_MARKER}", expected at most one`)
   }
 
-  return { id, width, height: grid.length, tiles, spawn: spawns[0], entities, exits }
+  return {
+    id,
+    name,
+    area,
+    origin,
+    width,
+    height: grid.length,
+    tiles,
+    spawn: spawns[0] ?? null,
+    entities,
+    exits,
+  }
 }

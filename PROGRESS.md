@@ -100,6 +100,53 @@
 - After a page reload in dev, the console showed two `InvalidStateError: Cannot suspend/resume a closed AudioContext` rejections. They come from Phaser's sound manager in a game instance that was destroyed (React StrictMode mounts twice in dev), not from combat code. Worth silencing (e.g. `audio: { noAudio: true }` until audio exists) in milestone 7.
 - No sound yet (milestone 7). Proton hum, trap snap and ghost wail will hook into the same events.
 
-## Next: Milestone 4 — World
-- Room transitions, the Firehouse hub plus the Library, the save system (fire pole) and the area map.
-- Decide what persists across death (captured ghosts, essence) once saves exist.
+## Milestone 4: World (done)
+
+**What's in:**
+- **8 connected rooms in two areas**, each an ASCII grid in `levels/firehouse.js` and `levels/library.js`, collected in `levels/world.js`:
+  - **Firehouse (hub, 3 rooms):** Garage (new-game spawn, fire pole, street door), Bunk Room above it (through a ceiling hatch) and Containment below it (through a floor hatch).
+  - **NY Public Library (5 rooms):** Front Steps, Reading Room, The Stacks (a tall shaft), Archives (underneath) and Archive Vault. Reading Room → Stacks → Archives → Reading Room is a loop, so you can backtrack either way. The Vault is empty and waits for the Librarian and the PKE Meter (milestone 5).
+  - `testRoom.js` is out of the world. In dev, `?room=test-room` (or any room id) starts there.
+- **Rooms live in world space.** Each room has an `origin` in world tiles. An exit is room data: `{ edge, span: [first, last], to }`. Because neighbouring rooms line up in world space, walking through keeps your position along the edge. Coming up through a floor gives an upward boost so you can reach the ledge beside the hatch. All pure logic is in `levels/exits.js` (`crossedEdge`, `exitAt`, `matchingExit`, `entryPlacement`).
+- **`validateWorld`** checks the whole world in a unit test: unique ids, no overlapping rooms, exits on real edges and open, every border opening covered by an exit, and every exit leading to a room that touches that edge, with a matching exit back. Other tests check that every room can be reached from the start and back, that ghosts float in open air with unique ids, and that hint ids have text.
+- **Room transitions:** the World scene restarts for every room behind a short fade (0.18 s out and in). Physics and the player freeze during the fade.
+- **Session** (`systems/session.js`, plain object in the registry): current room and how you entered it, HP, wallet, visited rooms, abilities (empty until milestone 5), the respawn point, and the ghosts captured since the last rest. The `InputState` is created once and survives scene restarts.
+- **Save system:**
+  - **Fire pole** (`entities/FirePole.js`, procedural brass rod plus a warm glow). Standing at it shows a hint, and pressing **up** rests: full HP, every ghost returns, the pole becomes the respawn point, and the save is written. The pole flashes and a toast confirms.
+  - **Format** (`systems/saveFormat.js`): `{ version: 1, roomId, essence, maxHp, visited, abilities, savedAt }`. `validateSave` repairs what it safely can (unknown room → start room, unknown visited rooms dropped, bad counts → defaults) and rejects non-objects and saves from newer versions. `migrateSave` upgrades one version at a time from a `MIGRATIONS` table (empty for now, since v1 is the first format; the mechanism is tested with a made-up history).
+  - **Storage** (`systems/saveStorage.js`): never throws. It reports `unavailable` (no or blocked `localStorage`), `read-failed`, `corrupt` (bad JSON), `invalid` and `write-failed` (quota, security). A corrupt or invalid save starts a new game with a toast. A failed write still rests and says it couldn't save.
+  - **On boot** the game continues at the saved pole if there's a usable save, otherwise it starts a new game. A title screen with New game / Continue is milestone 7.
+- **Death returns you to the last save:** the room where you rested, at the pole, with full HP and the essence you had when you saved (essence collected since is lost). Before any save it's the new-game spawn with 0 essence. Rooms seen since the save stay on the map. Ghosts return.
+- **Captured ghosts stay gone** until you rest or die (keyed `roomId/ghostId`), so you can't farm a room by walking in and out.
+- **Area map** (`systems/areaMap.js` + `ui/Menus.jsx`): `pause` (Esc / Tab / Start / the touch ❚❚ button) toggles it and freezes the game. It fills in as you go: a visited room is drawn as the shape of its open space (row runs merged into rectangles), with doors between known rooms, dashed ecto-green stubs for exits into unexplored rooms, the fire pole (orange once it's your save point), a pulsing player marker, and the area and room name. It's an HTML/SVG overlay with a thin double frame, drawn under the touch controls so the pause button stays visible to close it.
+- **Game → React bridge** (`systems/GameBridge.js`): a tiny store App creates and passes to the game through the registry (like `TouchInput`), read with `useSyncExternalStore`. It carries map state, the current hint, toasts and the area banner.
+- **In-world messages** (`ui/WorldMessages.jsx`): the area name when you enter a new area, toasts ("progress saved"), and hints from room hint zones (move, climb, map, combat, trap, vault) plus the pole prompt. They're worded for keyboard or touch (`ui/hintText.js`), sit in fixed slots across the top clear of the HUD, the player and the touch controls, and don't take input.
+- **Area palettes:** the Library draws its backdrop and bricks in cold teal and parchment (`PALETTE.library`). Each area gets its own generated tileset and backdrop (`areaTextures(area)`).
+- New tuning is in `constants.js` (`ROOM_TRANSITION`, `FIRE_POLE`) and new colours in `palette.js` (`library`, `pole`).
+
+**Verified:**
+- `pnpm lint`, `pnpm test` (192 tests; 58 new for exits, entry placement, world validation and reachability, save format, validation, migrations, storage errors, session rules, map layout and fill, hints and the bridge) and `pnpm build` all pass.
+- In the dev server (built-in browser, loop stepped at a fixed 60 fps, input fed through an extra `InputState` source, platforming done by a small hop-to-platform controller):
+  - **Every exit both ways:** Garage ↔ Front Steps, Garage ↔ Bunk Room (climbing the planks and jumping up through the hatch, then dropping back down), Garage ↔ Containment (falling through the floor hatch, then climbing back up), Front Steps ↔ Reading Room, Reading Room ↔ Stacks, Reading Room ↔ Archives, Stacks ↔ Archives (climbing the full Stacks shaft and the Archives planks), and Archives ↔ Vault. Height along the edge was preserved (e.g. y 229 → 229 on the street door, the 16 px offset on the Reading Room ledge), and upward entries landed on the floor beside the hatch.
+  - **Save:** on a fresh game the map showed only the Garage with 3 unexplored stubs. Resting at the pole wrote the v1 save to `localStorage` and showed the toast.
+  - **Captures persist:** captured the Front Steps ghost (+3 essence), left and came back, and it stayed gone.
+  - **Death:** died to the Containment ghost and came back at the Garage pole with 5 HP and essence rolled back from 3 to the saved 0. Visited rooms were kept and the Front Steps ghost was back.
+  - **Reload and continue:** saved with 7 essence (set from the console to save time; essence pickup itself was verified above and in milestone 3), reloaded the page, and the game continued at the Garage pole with 7 essence, full HP and the saved rooms on the map.
+  - **Storage errors:** a corrupt save (`{broken`) started a new game with the "couldn't be loaded" toast next to the area banner. With `setItem` throwing `QuotaExceededError`, resting still healed and showed "couldn't save on this device".
+  - The full map (all 8 rooms) showed all 8 doors explored and the player marker in the right room.
+- Screenshots: 1280×720 (garage with the pole glow and save hint, full map, Library archives in the teal palette, the banner/toast/hint stack) and 740×360 mobile landscape with touch emulation (hint above the controls, map opened with a synthetic touch on ❚❚, controls drawn over the map). No console errors.
+
+**Known issues / not verified:**
+- **Not played by hand.** Jumps were checked with a scripted controller, not real hands. Every hop is now a 1–2 tile horizontal gap with at most a 3-tile rise (the first layout had 4–5 tile gaps that the controller couldn't make, so they were tightened). The ceiling and floor hatches need a jump straight up while standing under them, which may feel fiddly with touch controls.
+- The Garage floor hatch sits between the spawn and the street door, so a player who walks right without jumping drops into Containment. That's on purpose (it teaches the hatch), but worth watching in playtests.
+- Coming up through a hatch without steering sideways drops you back down through it. That's standard for the genre but may surprise players.
+- Dying keeps you in the room you rested in. With the only pole in the Garage, a death in the Vault means a long walk back. Milestone 5 could add a second pole in the Library (the bench-per-area convention).
+- Outdoor rooms (Front Steps) still have a brick ceiling and walls. The art pass (milestone 6) should give them a sky and skyline.
+- A hint can overlap the area banner for the first ~2 s in a new area on very short screens (<300 px tall). Not seen at 360 px.
+- In the built-in browser, resizing the emulated viewport while the game loop is asleep (stepped manually) leaves the canvas at its old scale until the next real frame. It only affects screenshots taken that way, not the game.
+- Not verified on real hardware: `localStorage` in iOS Safari private mode (handled as `unavailable` / `write-failed` in code and unit tests, but not on a device).
+
+## Next: Milestone 5 — Progression
+- Abilities and gating (PKE Meter, Ecto-Dash, Slime Boots), the Hotel and Rooftop areas, the Librarian mini-boss (in the Archive Vault) and the final boss.
+- The session already has an `abilities` set and the save stores `abilities`, so no save migration is needed just to add abilities.
+- The Firehouse ability shop is still to do. The Bunk Room has a desk block where it could go.

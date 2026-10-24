@@ -1,4 +1,4 @@
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FEEL, TILE_SIZE } from '../constants.js'
+import { FIRE_POLE, GAME_HEIGHT, GAME_WIDTH, PLAYER_FEEL, TILE_SIZE } from '../constants.js'
 import { EDGE, PLATFORM_FRAME, SOLID_FRAME_COUNT } from '../levels/autotile.js'
 import { generateCombatTextures } from './combatTextures.js'
 import { drawPixelRows } from './drawPixelRows.js'
@@ -6,9 +6,22 @@ import { PALETTE } from './palette.js'
 import { PLAYER_FRAME_HEIGHT, PLAYER_FRAME_WIDTH, PLAYER_FRAMES } from './playerFrames.js'
 
 export const TEXTURES = {
-  BACKDROP: 'backdrop',
-  TILES: 'tiles',
   PLAYER: 'player',
+  POLE: 'fire-pole',
+}
+
+// Each area draws its backdrop and tiles in its own palette.
+const AREA_PALETTES = {
+  firehouse: PALETTE.firehouse,
+  library: PALETTE.library,
+}
+
+export const DEFAULT_AREA = 'firehouse'
+
+/** Texture keys for an area's backdrop and tileset. */
+export function areaTextures(area) {
+  const key = AREA_PALETTES[area] ? area : DEFAULT_AREA
+  return { backdrop: `backdrop-${key}`, tiles: `tiles-${key}` }
 }
 
 export const PLAYER_ANIMS = {
@@ -20,35 +33,38 @@ export const PLAYER_ANIMS = {
 
 /** Draws every texture the game uses. Nothing is loaded from disk. */
 export function generateTextures(scene) {
-  generateBackdrop(scene)
-  generateTiles(scene)
+  for (const [area, palette] of Object.entries(AREA_PALETTES)) {
+    const keys = areaTextures(area)
+    generateBackdrop(scene, keys.backdrop, palette)
+    generateTiles(scene, keys.tiles, palette)
+  }
   generatePlayer(scene)
+  generatePole(scene)
   generateCombatTextures(scene)
 }
 
-function generateBackdrop(scene) {
-  const texture = scene.textures.createCanvas(TEXTURES.BACKDROP, GAME_WIDTH, GAME_HEIGHT)
+function generateBackdrop(scene, key, palette) {
+  const texture = scene.textures.createCanvas(key, GAME_WIDTH, GAME_HEIGHT)
   const ctx = texture.context
   const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT)
-  gradient.addColorStop(0, PALETTE.firehouse.skyTop)
-  gradient.addColorStop(1, PALETTE.firehouse.skyBottom)
+  gradient.addColorStop(0, palette.skyTop)
+  gradient.addColorStop(1, palette.skyBottom)
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
   texture.refresh()
 }
 
-function generateTiles(scene) {
+function generateTiles(scene, key, palette) {
   const frameCount = PLATFORM_FRAME + 1
-  const texture = scene.textures.createCanvas(TEXTURES.TILES, TILE_SIZE * frameCount, TILE_SIZE)
+  const texture = scene.textures.createCanvas(key, TILE_SIZE * frameCount, TILE_SIZE)
   const ctx = texture.context
-  for (let mask = 0; mask < SOLID_FRAME_COUNT; mask++) drawSolidTile(ctx, mask * TILE_SIZE, mask)
-  drawPlatformTile(ctx, PLATFORM_FRAME * TILE_SIZE)
+  for (let mask = 0; mask < SOLID_FRAME_COUNT; mask++) drawSolidTile(ctx, mask * TILE_SIZE, mask, palette)
+  drawPlatformTile(ctx, PLATFORM_FRAME * TILE_SIZE, palette)
   texture.refresh()
 }
 
 // Brick wall, dark inside, with thin pale highlights on edges facing open air.
-function drawSolidTile(ctx, ox, mask) {
-  const c = PALETTE.firehouse
+function drawSolidTile(ctx, ox, mask, c) {
   const s = TILE_SIZE
   const half = s / 2
   const fill = (color, x, y, w, h) => {
@@ -72,8 +88,7 @@ function drawSolidTile(ctx, ox, mask) {
 }
 
 // Wooden plank with two brackets underneath.
-function drawPlatformTile(ctx, ox) {
-  const c = PALETTE.firehouse
+function drawPlatformTile(ctx, ox, c) {
   const fill = (color, x, y, w, h) => {
     ctx.fillStyle = color
     ctx.fillRect(ox + x, y, w, h)
@@ -83,6 +98,24 @@ function drawPlatformTile(ctx, ox) {
   fill(c.plankShadow, 0, 4, TILE_SIZE, 1)
   fill(c.plankShadow, 3, 5, 2, 3)
   fill(c.plankShadow, 11, 5, 2, 3)
+}
+
+// One tile of brass fire pole, tiled vertically: a rounded rod with a bright
+// highlight down one side and a band every tile.
+function generatePole(scene) {
+  const c = PALETTE.pole
+  const w = FIRE_POLE.WIDTH
+  const texture = scene.textures.createCanvas(TEXTURES.POLE, w, TILE_SIZE)
+  const ctx = texture.context
+  const fill = (color, x, y, width, height) => {
+    ctx.fillStyle = color
+    ctx.fillRect(x, y, width, height)
+  }
+  fill(c.brass, 0, 0, w, TILE_SIZE)
+  fill(c.shadow, w - 1, 0, 1, TILE_SIZE)
+  fill(c.highlight, 1, 0, 1, TILE_SIZE)
+  fill(c.shadow, 0, TILE_SIZE - 1, w, 1)
+  texture.refresh()
 }
 
 function generatePlayer(scene) {

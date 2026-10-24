@@ -21,9 +21,15 @@ describe('parseRoom', () => {
     expect(() => parseRoom({ id: 'r', grid: ['#?#', '#P#'] })).toThrow(/unknown tile "\?"/)
   })
 
-  it('requires exactly one spawn', () => {
-    expect(() => parseRoom({ id: 'r', grid: ['###'] })).toThrow(/found 0/)
-    expect(() => parseRoom({ id: 'r', grid: ['PP#'] })).toThrow(/found 2/)
+  it('allows no spawn but rejects several', () => {
+    expect(parseRoom({ id: 'r', grid: ['###'] }).spawn).toBeNull()
+    expect(() => parseRoom({ id: 'r', grid: ['PP#'] })).toThrow(/2 spawns/)
+  })
+
+  it('passes area, name and origin through, with defaults', () => {
+    const room = parseRoom({ id: 'r', grid: ['#'], area: 'library', name: 'Stacks', origin: { x: 4, y: -2 } })
+    expect(room).toMatchObject({ area: 'library', name: 'Stacks', origin: { x: 4, y: -2 } })
+    expect(parseRoom({ id: 'r', grid: ['#'] })).toMatchObject({ area: null, name: 'r', origin: { x: 0, y: 0 } })
   })
 
   it('parses the test room', () => {

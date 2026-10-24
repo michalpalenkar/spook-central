@@ -1,16 +1,15 @@
 import { TILE_SIZE } from '../constants.js'
-import { TEXTURES } from '../art/generateTextures.js'
 import { PLATFORM_FRAME, SOLID_FRAME_COUNT, toTileIndices } from '../levels/autotile.js'
 import { canLandOnPlatform } from './oneWayPlatform.js'
 
-/** Builds a collidable tilemap layer from a parsed room. */
-export function buildRoom(scene, room) {
+/** Builds a collidable tilemap layer from a parsed room, using the tileset texture `tilesKey`. */
+export function buildRoom(scene, room, tilesKey) {
   const map = scene.make.tilemap({
     data: toTileIndices(room.tiles),
     tileWidth: TILE_SIZE,
     tileHeight: TILE_SIZE,
   })
-  const tileset = map.addTilesetImage(TEXTURES.TILES, TEXTURES.TILES, TILE_SIZE, TILE_SIZE, 0, 0)
+  const tileset = map.addTilesetImage(tilesKey, tilesKey, TILE_SIZE, TILE_SIZE, 0, 0)
   const layer = map.createLayer(0, tileset, 0, 0)
 
   // Solid faces are computed first, while platforms don't collide, so walls

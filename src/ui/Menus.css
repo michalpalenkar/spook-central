@@ -1,0 +1,172 @@
+.map-menu {
+  --map-ink: #d9dccf;
+  --map-dim: rgba(217, 220, 207, 0.55);
+  --map-frame: rgba(160, 170, 195, 0.55);
+  --map-ecto: #7dff6a;
+  --map-proton: #ff7a3c;
+  --map-brass: #f3d98a;
+
+  position: fixed;
+  inset: 0;
+  /* Under the touch controls, so the pause button stays visible to close it. */
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 12px)
+    calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px);
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at center, rgba(5, 6, 12, 0.72), rgba(5, 6, 12, 0.92));
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--map-ink);
+}
+
+/* Thin double frame with small corner ornaments. */
+.map-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(880px, 100%);
+  height: min(560px, 100%);
+  padding: 14px 20px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--map-frame);
+  outline: 1px solid rgba(160, 170, 195, 0.2);
+  outline-offset: 4px;
+  background: rgba(10, 13, 24, 0.78);
+}
+
+.map-frame::before,
+.map-frame::after {
+  content: '◆';
+  position: absolute;
+  top: -8px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--map-frame);
+}
+.map-frame::before {
+  left: -6px;
+}
+.map-frame::after {
+  right: -6px;
+}
+
+.map-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+}
+
+.map-area {
+  font-size: 20px;
+}
+
+.map-room {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--map-dim);
+}
+
+.map-svg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.map-room-bounds {
+  fill: rgba(20, 26, 44, 0.9);
+  stroke: rgba(160, 170, 195, 0.35);
+  stroke-width: 0.35;
+}
+
+.map-room-open {
+  fill: rgba(150, 162, 190, 0.32);
+}
+.map-area-library .map-room-open {
+  fill: rgba(130, 190, 180, 0.32);
+}
+.is-current .map-room-bounds {
+  stroke: var(--map-ecto);
+  stroke-width: 0.6;
+}
+
+.map-door {
+  stroke: rgba(230, 232, 220, 0.85);
+  stroke-width: 0.8;
+}
+.map-door.is-unexplored {
+  stroke: var(--map-ecto);
+  stroke-dasharray: 0.8 0.6;
+}
+
+.map-pole line {
+  stroke: var(--map-brass);
+  stroke-width: 0.7;
+}
+.map-pole circle {
+  fill: var(--map-brass);
+}
+.map-pole.is-saved circle {
+  fill: var(--map-proton);
+}
+
+.map-player {
+  fill: var(--map-proton);
+  stroke: #fff2d8;
+  stroke-width: 0.4;
+  animation: map-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes map-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
+.map-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--map-dim);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+.map-legend i {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.map-key-pole {
+  width: 2px;
+  height: 12px;
+  background: var(--map-brass);
+}
+.map-key-unexplored {
+  width: 14px;
+  border-top: 2px dashed var(--map-ecto);
+}
+
+/* Short landscape phones: tighter frame and type. */
+@media (max-height: 420px) {
+  .map-frame {
+    padding: 8px 14px 6px;
+  }
+  .map-area {
+    font-size: 16px;
+  }
+  .map-legend {
+    font-size: 11px;
+  }
+}

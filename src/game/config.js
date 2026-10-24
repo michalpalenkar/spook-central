@@ -11,7 +11,8 @@ import { WorldScene } from './scenes/WorldScene.js'
 //
 // `touchInput` is the TouchInput the React touch overlay writes to; it is put
 // in the game registry so scenes can add it as an InputState source.
-export function createGameConfig(parent, { touchInput } = {}) {
+// `bridge` is the GameBridge the React overlays (map, hints, toasts) read.
+export function createGameConfig(parent, { touchInput, bridge } = {}) {
   return {
     type: Phaser.AUTO,
     parent,
@@ -31,7 +32,10 @@ export function createGameConfig(parent, { touchInput } = {}) {
       arcade: { gravity: { x: 0, y: 0 } },
     },
     callbacks: {
-      preBoot: (game) => game.registry.set('touchInput', touchInput),
+      preBoot: (game) => {
+        game.registry.set('touchInput', touchInput)
+        game.registry.set('bridge', bridge)
+      },
     },
     scene: [PreloadScene, WorldScene, UIScene],
   }

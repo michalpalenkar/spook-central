@@ -79,6 +79,7 @@ export const HAPTICS = {
 // Draw order of world objects.
 export const DEPTH = {
   BACKDROP: -10,
+  POLE: -1,
   ROOM: 0,
   TRAP_BEAM: 4,
   TRAP: 5,
@@ -268,4 +269,28 @@ export const HUD = {
   DIGIT_SCALE: 2,
   // Pip shake when the player is hit.
   HIT_FLASH_TIME: 0.25,
+}
+
+// Walking from one room into the next.
+export const ROOM_TRANSITION = {
+  // Fade out, then in, in seconds.
+  FADE_TIME: 0.18,
+  // The player appears this many px inside the new room's edge.
+  ENTRY_INSET: 2,
+  // Coming up through a floor, the player rises at least this fast (px/s),
+  // enough to clear the two-tile floor beside the opening.
+  ENTRY_JUMP_VELOCITY: 400,
+}
+
+// The fire pole: the save point.
+export const FIRE_POLE = {
+  // The player can rest within this many px of the pole, horizontally.
+  REACH: 14,
+  WIDTH: 4,
+  GLOW_SCALE: 1.1,
+  GLOW_ALPHA: 0.18,
+  // Flash when the player rests.
+  SAVE_GLOW_SCALE: 2.2,
+  SAVE_GLOW_ALPHA: 0.85,
+  SAVE_GLOW_TIME: 0.7,
 }

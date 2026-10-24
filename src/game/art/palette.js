@@ -20,6 +20,28 @@ export const PALETTE = {
     plankShadow: '#1d1614',
   },
 
+  // Cold teal stone and parchment.
+  library: {
+    skyTop: '#060f13',
+    skyBottom: '#10232a',
+    brick: '#152a2e',
+    brickInterior: '#0b1719',
+    mortar: '#081113',
+    edgeHighlight: '#b9b08f',
+    edgeMid: '#2c4a4c',
+    edgeShadow: '#040a0b',
+    plank: '#3d3424',
+    plankHighlight: '#c9b98a',
+    plankShadow: '#1a160e',
+  },
+
+  pole: {
+    brass: '#b08a3e',
+    highlight: '#f3d98a',
+    shadow: '#5a431b',
+    glow: '#ffc76a',
+  },
+
   ghost: {
     body: '#b9ffd0',
     bodyShade: '#5fd49a',
