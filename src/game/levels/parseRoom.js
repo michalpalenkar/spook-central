@@ -11,6 +11,9 @@ export const TILE = {
   BARRIER: 5,
   // Slimed wall: solid; Slime Boots cling to it.
   SLIME: 6,
+  // Open sky over an outdoor room: solid like the room's border, but never
+  // drawn and not masonry, so the walls beneath it read as rooftops.
+  SKY: 7,
 }
 
 const LEGEND = {
@@ -21,6 +24,7 @@ const LEGEND = {
   B: TILE.WEAK_FLOOR,
   E: TILE.BARRIER,
   S: TILE.SLIME,
+  '^': TILE.SKY,
 }
 
 const WALLS = new Set([TILE.SOLID, TILE.SPECTRAL, TILE.WEAK_FLOOR, TILE.SLIME])
@@ -33,18 +37,24 @@ export function isWallTile(tile) {
   return WALLS.has(tile)
 }
 
+/** Whether a tile blocks the player: walls, the sky boundary and barriers. */
+export function isClosedTile(tile) {
+  return WALLS.has(tile) || tile === TILE.SKY
+}
+
 const SPAWN_MARKER = 'P'
 
 /**
  * Turns a room definition into a tile grid (legend above; `P` is the spawn):
- * { id, grid: string[], entities?, exits?, area?, name?, origin? }.
+ * { id, grid: string[], entities?, exits?, area?, name?, origin?, outdoor? }.
  *
  * `P` in the grid marks the new-game player spawn and is stored as empty; a
  * room has at most one (most have none). `origin` is the room's top-left
  * corner in world tiles, which places it on the area map and lines up exits
- * between neighbouring rooms.
+ * between neighbouring rooms. `outdoor` rooms are drawn against the sky and
+ * the skyline instead of interior architecture.
  */
-export function parseRoom({ id, grid, entities = [], exits = [], area = null, name = id, origin = { x: 0, y: 0 } }) {
+export function parseRoom({ id, grid, entities = [], exits = [], area = null, name = id, origin = { x: 0, y: 0 }, outdoor = false }) {
   if (!grid?.length) throw new Error(`Room "${id}" has no rows`)
 
   const width = grid[0].length
@@ -73,6 +83,7 @@ export function parseRoom({ id, grid, entities = [], exits = [], area = null, na
     name,
     area,
     origin,
+    outdoor,
     width,
     height: grid.length,
     tiles,

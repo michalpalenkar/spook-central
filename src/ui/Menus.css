@@ -37,23 +37,33 @@
   background: rgba(10, 13, 24, 0.78);
 }
 
-.map-frame::before,
 .map-frame::after {
-  content: '◆';
+  content: '';
   position: absolute;
-  top: -8px;
-  font-size: 11px;
-  line-height: 14px;
-  color: var(--map-frame);
+  inset: -9px;
+  pointer-events: none;
+  background:
+    var(--ornament-corner-tl) top left no-repeat,
+    var(--ornament-corner-tr) top right no-repeat,
+    var(--ornament-corner-bl) bottom left no-repeat,
+    var(--ornament-corner-br) bottom right no-repeat;
 }
-.map-frame::before {
-  left: -6px;
-}
-.map-frame::after {
-  right: -6px;
+
+.map-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 120px;
+  height: 10px;
+  transform: translateX(-50%);
+  background: var(--ornament-divider) no-repeat;
+  opacity: 0.8;
 }
 
 .map-title {
+  position: relative;
+  padding-bottom: 10px;
   display: flex;
   align-items: baseline;
   justify-content: center;

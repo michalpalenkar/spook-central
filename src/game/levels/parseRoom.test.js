@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TILE, isWallTile, parseRoom } from './parseRoom.js'
+import { TILE, isClosedTile, isWallTile, parseRoom } from './parseRoom.js'
 import { TEST_ROOM } from './testRoom.js'
 
 describe('parseRoom', () => {
@@ -40,6 +40,17 @@ describe('parseRoom', () => {
     const room = parseRoom({ id: 'r', grid: ['#'], area: 'library', name: 'Stacks', origin: { x: 4, y: -2 } })
     expect(room).toMatchObject({ area: 'library', name: 'Stacks', origin: { x: 4, y: -2 } })
     expect(parseRoom({ id: 'r', grid: ['#'] })).toMatchObject({ area: null, name: 'r', origin: { x: 0, y: 0 } })
+  })
+
+  it('parses open sky as a closed tile that is not masonry, and the outdoor flag', () => {
+    const room = parseRoom({ id: 'r', grid: ['^^^', '#.#'], outdoor: true })
+    expect(room.tiles[0]).toEqual([TILE.SKY, TILE.SKY, TILE.SKY])
+    expect(room.outdoor).toBe(true)
+    expect(parseRoom({ id: 'r', grid: ['#'] }).outdoor).toBe(false)
+    expect(isWallTile(TILE.SKY)).toBe(false)
+    expect(isClosedTile(TILE.SKY)).toBe(true)
+    expect(isClosedTile(TILE.SOLID)).toBe(true)
+    expect(isClosedTile(TILE.EMPTY)).toBe(false)
   })
 
   it('parses the test room', () => {

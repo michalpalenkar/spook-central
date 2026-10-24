@@ -9,12 +9,14 @@ export const EDGE = {
 }
 
 // Tileset layout: frames 0–15 are solid tiles indexed by edge mask, then the
-// platform, then 16 slimed walls (same masks), then the ectoplasm barrier.
+// platform, then 16 slimed walls (same masks), then the ectoplasm barrier,
+// then the sky boundary (a transparent frame that only collides).
 export const SOLID_FRAME_COUNT = 16
 export const PLATFORM_FRAME = 16
 export const SLIME_FRAME_START = 17
 export const BARRIER_FRAME = SLIME_FRAME_START + SOLID_FRAME_COUNT
-export const TILESET_FRAME_COUNT = BARRIER_FRAME + 1
+export const SKY_FRAME = BARRIER_FRAME + 1
+export const TILESET_FRAME_COUNT = SKY_FRAME + 1
 export const EMPTY_INDEX = -1
 
 export const isSlimeFrame = (index) => index >= SLIME_FRAME_START && index < BARRIER_FRAME
@@ -42,6 +44,7 @@ export function tileIndexAt(tiles, x, y) {
   if (isWallTile(tile)) return edgeMask(tiles, x, y)
   if (tile === TILE.PLATFORM) return PLATFORM_FRAME
   if (tile === TILE.BARRIER) return BARRIER_FRAME
+  if (tile === TILE.SKY) return SKY_FRAME
   return EMPTY_INDEX
 }
 

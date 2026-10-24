@@ -1,5 +1,6 @@
 import { hintId, hintText } from './hintText.js'
 import { useGameBridge } from './useGameBridge.js'
+import './ornaments.css'
 import './WorldMessages.css'
 
 /**

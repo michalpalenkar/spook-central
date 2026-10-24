@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GHOST_FRAME_HEIGHT, GHOST_FRAME_WIDTH, GHOST_FRAMES, swayRows } from './ghostFrames.js'
-import { CELL_FRAMES, CELL_HEIGHT, CELL_WIDTH, DIGIT_HEIGHT, DIGIT_WIDTH, DIGITS, toDigits } from './hudGlyphs.js'
+import { CELL_FRAMES, CELL_HEIGHT, CELL_WIDTH, DIAMOND, DIGIT_HEIGHT, DIGIT_WIDTH, DIGITS, SCROLL, toDigits } from './hudGlyphs.js'
+import { LAMP_FRAMES, lampSize } from './lampFrames.js'
 import { TRAP_FRAME_HEIGHT, TRAP_FRAME_WIDTH, TRAP_FRAMES } from './trapFrames.js'
 
 function expectGrid(rows, width, height, allowed) {
@@ -22,6 +23,21 @@ describe('combat pixel art', () => {
 
   it.each(Object.entries(CELL_FRAMES))('battery cell %s is 8×12', (_name, rows) => {
     expectGrid(rows, CELL_WIDTH, CELL_HEIGHT, 'fdcke')
+  })
+
+  it('keeps the mask cell\'s eyes dark when empty', () => {
+    expect(CELL_FRAMES.empty.join('')).toMatch(/d/)
+    expect(CELL_FRAMES.empty.join('')).not.toMatch(/[ck]/)
+  })
+
+  it('has rectangular HUD ornaments', () => {
+    for (const rows of [DIAMOND, SCROLL]) expectGrid(rows, rows[0].length, rows.length, 'os')
+  })
+
+  it.each(Object.entries(LAMP_FRAMES))('lamp %s is rectangular with a lit pixel', (area, rows) => {
+    const { width, height } = lampSize(area)
+    expectGrid(rows, width, height, 'oml')
+    expect(rows.join('')).toMatch(/l/)
   })
 
   it('has ten 3×5 digits', () => {

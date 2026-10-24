@@ -131,5 +131,14 @@ describe('world data', () => {
       for (const hint of room.entities.filter((e) => e.type === 'hint' && e.requires)) expect(ABILITY_IDS).toContain(hint.requires)
     }
   })
-})
 
+  it('opens the outdoor rooms to the sky above the reachable space', () => {
+    for (const id of ['library-steps', 'rooftop-summit']) {
+      const room = getRoom(id)
+      expect(room.outdoor).toBe(true)
+      expect(room.tiles[0].every((t) => t === TILE.SKY)).toBe(true)
+    }
+    // Indoor rooms keep their ceilings.
+    for (const room of ROOMS.filter((r) => !r.outdoor)) expect(room.tiles.flat()).not.toContain(TILE.SKY)
+  })
+})

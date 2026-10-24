@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import {
+  ATMOSPHERE,
   BOSS_FIGHT,
   CAMERA,
   DEPTH,
@@ -21,9 +22,11 @@ import {
 import { toColor } from '../art/color.js'
 import { DEFAULT_AREA, areaTextures } from '../art/generateTextures.js'
 import { PALETTE } from '../art/palette.js'
+import { sceneryPalette } from '../art/scenery.js'
 import { EssenceOrb } from '../entities/EssenceOrb.js'
 import { FirePole } from '../entities/FirePole.js'
 import { GateOverlay } from '../entities/GateOverlay.js'
+import { Lamp } from '../entities/Lamp.js'
 import { Ghost } from '../entities/Ghost.js'
 import { Librarian } from '../entities/Librarian.js'
 import { Mallow } from '../entities/Mallow.js'
@@ -50,6 +53,7 @@ import {
   weakFloorUnderfoot,
 } from '../systems/abilities.js'
 import { buildMapView } from '../systems/areaMap.js'
+import { Atmosphere } from '../systems/Atmosphere.js'
 import { BOSSES, isBeaten, markBeaten, pendingRelic } from '../systems/bosses.js'
 import { buildRoom, clearTiles, roomCollisionFilter } from '../systems/buildRoom.js'
 import { createDeathSequence, startDeath, stepDeath } from '../systems/deathSequence.js'
@@ -60,9 +64,11 @@ import { SAVE_HINT, canUsePole, hintAt } from '../systems/hints.js'
 import { createHitStop, stepHitStop, triggerHitStop } from '../systems/hitStop.js'
 import { InputState } from '../systems/InputState.js'
 import { KeyboardInput } from '../systems/KeyboardInput.js'
+import { lampSpots } from '../systems/lampSpots.js'
 import { groundBelow } from '../systems/lineOfSight.js'
 import { PROJECTILE_KIND } from '../systems/projectile.js'
 import { writeSave } from '../systems/saveStorage.js'
+import { Scenery } from '../systems/Scenery.js'
 import {
   ENTRY,
   brokenIn,
@@ -76,6 +82,7 @@ import {
 } from '../systems/session.js'
 import { buy, nextItem } from '../systems/shop.js'
 import { advanceChase, slimerInRoom } from '../systems/slimerChase.js'
+import { StormEffects } from '../systems/StormEffects.js'
 import { HUD_KEYS } from './UIScene.js'
 
 export const SAVED_TEXT = 'Rested at the fire pole · progress saved'
@@ -111,7 +118,6 @@ export class WorldScene extends Phaser.Scene {
     const room = resolveRoom(this.session.roomId) ?? getRoom(this.session.respawn.roomId)
     this.room = room
     const { abilities } = this.session
-    const textures = areaTextures(room.area ?? DEFAULT_AREA)
     const entry = this.entryPoint()
 
     // The room as the player meets it: spectral walls gone with the PKE
@@ -120,10 +126,10 @@ export class WorldScene extends Phaser.Scene {
     this.tiles = effectiveTiles(room.tiles, abilities, brokenIn(this.session, room.id))
     this.burstWeakFloors(entry)
 
-    this.add.image(0, 0, textures.backdrop).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.BACKDROP)
-    const { layer, width, height } = buildRoom(this, this.tiles, textures.tiles)
+    const { layer, width, height } = buildRoom(this, this.tiles, areaTextures(room.area ?? DEFAULT_AREA).tiles)
     layer.setDepth(DEPTH.ROOM)
     this.layer = layer
+    this.createScenery(room, width, height)
     this.gates = new GateOverlay(this, room, abilities, brokenIn(this.session, room.id))
 
     // The input state outlives scene restarts, so keys are bound only once.
@@ -189,6 +195,17 @@ export class WorldScene extends Phaser.Scene {
     this.bridge?.update({ mapOpen: false, hint: null, boss: null })
     this.publishHud()
     if (!this.scene.isActive('UI')) this.scene.launch('UI')
+  }
+
+  // Parallax layers, atmosphere, lamps under the ceilings (indoors) and the
+  // storm (on the rooftop).
+  createScenery(room, width, height) {
+    this.scenery = new Scenery(this, room, height)
+    const { variant } = this.scenery
+    const palette = sceneryPalette(variant)
+    this.atmosphere = new Atmosphere(this, { width, height }, palette, { dust: !variant.storm })
+    this.lamps = variant.outdoor ? [] : lampSpots(this.tiles, ATMOSPHERE).map((spot) => new Lamp(this, spot, variant.area, palette))
+    this.storm = variant.storm ? new StormEffects(this) : null
   }
 
   // Ghost and orb code reads `room.tiles`; give them the tiles as met.
@@ -289,10 +306,15 @@ export class WorldScene extends Phaser.Scene {
     const input = this.inputState
 
     if (input.justPressed('pause') && !this.leaving && !this.death.active) this.toggleMap()
+    const camera = this.cameras.main
+    this.scenery.update(camera)
     if (this.mapOpen || this.leaving) {
       this.physics.world.pause()
       return
     }
+    this.atmosphere.update(dt, camera)
+    for (const lamp of this.lamps) lamp.update(dt)
+    this.storm?.update(dt)
 
     // Hit-stop freezes the simulation (physics included) for a few frames.
     if (stepHitStop(this.hitStop, realDt)) {
@@ -318,6 +340,7 @@ export class WorldScene extends Phaser.Scene {
       wall: abilities.has(ABILITY.BOOTS) ? slimeContact(this.tiles, rect, TILE_SIZE) : 0,
       insideBarrier: overlapsBarrier(this.tiles, rect, TILE_SIZE),
     })
+    this.kickUpDust()
     this.updateStomp(input)
 
     this.updateStream(dt, firing)
@@ -357,6 +380,16 @@ export class WorldScene extends Phaser.Scene {
       TILE_SIZE,
     )
     this.bridge.update({ mapOpen: true, map })
+  }
+
+  // Dust puffs at the player's feet on hard landings and jumps off the floor.
+  kickUpDust() {
+    const events = this.player.lastEvents
+    if (!events) return
+    const { x } = this.player.center
+    const feet = this.player.body.bottom
+    if (events.landed && events.landingSpeed >= ATMOSPHERE.PUFF_MIN_LANDING_SPEED) this.atmosphere.puff(x, feet)
+    else if (events.jumped && this.player.body.blocked.down) this.atmosphere.puff(x, feet, Math.ceil(ATMOSPHERE.PUFF_COUNT / 2))
   }
 
   // With the PKE Meter, pressing down on a weak floor stomps through it.

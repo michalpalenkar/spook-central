@@ -1,5 +1,6 @@
 import { AREAS } from '../game/levels/world.js'
 import { useGameBridge } from './useGameBridge.js'
+import './ornaments.css'
 import './Menus.css'
 
 // Margin around the explored rooms, in tiles.

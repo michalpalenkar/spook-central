@@ -14,7 +14,7 @@ import { TILE } from '../levels/parseRoom.js'
 export class FirePole {
   constructor(scene, { x, y }, room) {
     let top = y
-    while (top > 0 && room.tiles[top - 1][x] !== TILE.SOLID) top--
+    while (top > 0 && room.tiles[top - 1][x] !== TILE.SOLID && room.tiles[top - 1][x] !== TILE.SKY) top--
 
     this.x = (x + 0.5) * TILE_SIZE
     this.feetY = (y + 1) * TILE_SIZE

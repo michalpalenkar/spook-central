@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isWallTile, parseRoom } from '../levels/parseRoom.js'
+import { isClosedTile, parseRoom } from '../levels/parseRoom.js'
 import { ROOMS, START_ROOM } from '../levels/world.js'
 import { buildMapView, openRects } from './areaMap.js'
 
@@ -16,7 +16,7 @@ describe('openRects', () => {
   it('covers exactly the open tiles of a real room', () => {
     for (const room of ROOMS) {
       const area = openRects(room.tiles).reduce((sum, r) => sum + r.width * r.height, 0)
-      const open = room.tiles.flat().filter((t) => !isWallTile(t)).length
+      const open = room.tiles.flat().filter((t) => !isClosedTile(t)).length
       expect(area).toBe(open)
     }
   })

@@ -1,4 +1,5 @@
 import { useGameBridge } from './useGameBridge.js'
+import './ornaments.css'
 import './BossBar.css'
 
 /**

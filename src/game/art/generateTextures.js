@@ -1,10 +1,12 @@
 import { FIRE_POLE, GAME_HEIGHT, GAME_WIDTH, PLAYER_FEEL, TILE_SIZE } from '../constants.js'
 import { BARRIER_FRAME, EDGE, PLATFORM_FRAME, SLIME_FRAME_START, SOLID_FRAME_COUNT, TILESET_FRAME_COUNT } from '../levels/autotile.js'
+import { generateAtmosphereTextures } from './atmosphereTextures.js'
 import { generateCombatTextures } from './combatTextures.js'
 import { drawPixelRows } from './drawPixelRows.js'
 import { PALETTE } from './palette.js'
 import { generateProgressionTextures } from './progressionTextures.js'
 import { PLAYER_FRAME_HEIGHT, PLAYER_FRAME_WIDTH, PLAYER_FRAMES } from './playerFrames.js'
+import { generateSceneryTextures } from './sceneryTextures.js'
 
 export const TEXTURES = {
   PLAYER: 'player',
@@ -45,6 +47,8 @@ export function generateTextures(scene) {
   generatePole(scene)
   generateCombatTextures(scene)
   generateProgressionTextures(scene)
+  generateSceneryTextures(scene)
+  generateAtmosphereTextures(scene)
 }
 
 function generateBackdrop(scene, key, palette) {

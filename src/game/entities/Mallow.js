@@ -1,10 +1,11 @@
 import Phaser from 'phaser'
-import { DEPTH, MALLOW, PROJECTILE, TILE_SIZE } from '../constants.js'
+import { DEPTH, HIT_FLASH, MALLOW, PROJECTILE, TILE_SIZE } from '../constants.js'
 import { toColor } from '../art/color.js'
 import { COMBAT_TEXTURES } from '../art/combatTextures.js'
 import { PALETTE } from '../art/palette.js'
 import { PROGRESSION_TEXTURES } from '../art/progressionTextures.js'
 import { damageGhost } from '../systems/ghostState.js'
+import { createHitFlash, hitFlashOn, stepHitFlash } from '../systems/hitFlash.js'
 import {
   MALLOW_STATE,
   createMallowBrain,
@@ -40,6 +41,11 @@ export class Mallow {
     this.brain = createMallowBrain((data.x + 0.5) * TILE_SIZE, this.floorY)
     this.tethered = false
     this.time = 0
+    this.hitFlash = createHitFlash()
+    this.hitThisFrame = false
+    // Displayed height scale: eases toward the pose's, with a squash on landing and a stretch on take-off.
+    this.scaleY = 1
+    this.lastState = this.brain.state
 
     this.glow = scene.add
       .image(0, 0, COMBAT_TEXTURES.GLOW)
@@ -113,7 +119,9 @@ export class Mallow {
   }
 
   takeStreamDamage(amount) {
-    if (this.targetable) damageGhost(this.brain.health, amount, MALLOW)
+    if (!this.targetable) return
+    damageGhost(this.brain.health, amount, MALLOW)
+    this.hitThisFrame = true
   }
 
   recoil() {}
@@ -130,8 +138,22 @@ export class Mallow {
       globGravity: PROJECTILE.GLOB_GRAVITY,
       throwFrom: MALLOW.BODY_HEIGHT * THROW_HEIGHT_FRACTION,
     }, dt)
+    stepHitFlash(this.hitFlash, dt, this.hitThisFrame, HIT_FLASH)
+    this.hitThisFrame = false
+    this.updateSquash(dt, events)
     if (this.active) this.render()
     return events
+  }
+
+  updateSquash(dt, events) {
+    const { state } = this.brain
+    if (state === MALLOW_STATE.AIRBORNE && this.lastState !== state) this.scaleY = MALLOW.LEAP_STRETCH_Y
+    if (events.landed) this.scaleY = MALLOW.LAND_SQUASH_Y
+    this.lastState = state
+    let target = 1
+    if (state === MALLOW_STATE.WINDUP || state === MALLOW_STATE.LANDED) target = MALLOW.CROUCH_SCALE_Y
+    if (state === MALLOW_STATE.KNEEL) target = MALLOW.KNEEL_SCALE_Y
+    this.scaleY += (target - this.scaleY) * (1 - Math.exp(-MALLOW.SQUASH_RECOVERY_RATE * dt))
   }
 
   startCapture() {
@@ -169,9 +191,7 @@ export class Mallow {
     const { state, x, feetY } = this.brain
     const walking = state === MALLOW_STATE.WALK
     const bob = walking ? Math.abs(Math.sin(this.time * MALLOW.WALK_BOB_SPEED)) * MALLOW.WALK_BOB_AMPLITUDE : 0
-    let scaleY = 1
-    if (state === MALLOW_STATE.WINDUP || state === MALLOW_STATE.LANDED) scaleY = MALLOW.CROUCH_SCALE_Y
-    if (state === MALLOW_STATE.KNEEL) scaleY = MALLOW.KNEEL_SCALE_Y
+    const scaleY = this.scaleY
     const scaleX = 2 - scaleY
 
     this.sprite
@@ -189,6 +209,7 @@ export class Mallow {
     } else {
       this.sprite.clearTint().setAlpha(1)
     }
+    if (hitFlashOn(this.hitFlash, HIT_FLASH)) this.sprite.setTintFill(PALETTE.hitFlash)
   }
 
   destroy() {

@@ -1,7 +1,10 @@
 import Phaser from 'phaser'
 import { HUD } from '../constants.js'
+import { ATMOSPHERE_TEXTURES } from '../art/atmosphereTextures.js'
+import { toColor } from '../art/color.js'
 import { COMBAT_TEXTURES } from '../art/combatTextures.js'
-import { CELL_HEIGHT, CELL_WIDTH, DIGIT_WIDTH, toDigits } from '../art/hudGlyphs.js'
+import { CELL_HEIGHT, CELL_WIDTH, DIGIT_HEIGHT, DIGIT_WIDTH, toDigits } from '../art/hudGlyphs.js'
+import { PALETTE } from '../art/palette.js'
 import { PROGRESSION_TEXTURES } from '../art/progressionTextures.js'
 import { ABILITY_IDS } from '../systems/abilities.js'
 
@@ -16,8 +19,9 @@ export const HUD_KEYS = {
 
 /**
  * The HUD, drawn above the world in its own scene so camera shake and
- * scrolling never touch it: proton-pack battery cells for HP, an
- * ecto-essence counter, and the relics of the abilities owned.
+ * scrolling never touch it: mask-shaped proton-pack battery cells for HP,
+ * an ecto-essence counter, and the relics of the abilities owned, on a soft
+ * dark plate between two thin ornamental rules.
  */
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -29,6 +33,14 @@ export class UIScene extends Phaser.Scene {
     this.digits = []
     this.flashTimer = 0
     this.lastHp = null
+    this.plateFor = null
+
+    // The plate: a soft shadow, a rule above the cells (diamond to scroll)
+    // and a shorter one under the counter.
+    this.shadow = this.add.image(0, 0, ATMOSPHERE_TEXTURES.LIGHT).setOrigin(0).setTint(toColor(PALETTE.hud.plate))
+    this.rules = this.add.graphics()
+    this.diamond = this.add.image(0, 0, ATMOSPHERE_TEXTURES.HUD_DIAMOND).setOrigin(0.5)
+    this.scroll = this.add.image(0, 0, ATMOSPHERE_TEXTURES.HUD_SCROLL).setOrigin(0, 0.5)
 
     const cellsTop = HUD.MARGIN_Y
     const essenceY = cellsTop + CELL_HEIGHT + HUD.ESSENCE_GAP
@@ -60,9 +72,35 @@ export class UIScene extends Phaser.Scene {
       this.cells.push(this.add.image(x, HUD.MARGIN_Y, COMBAT_TEXTURES.HUD_CELL, 'full').setOrigin(0))
     }
     this.cells.forEach((cell, i) => cell.setVisible(i < maxHp))
+    this.drawPlate(maxHp)
     this.drawCells()
     this.drawEssence(this.registry.get(HUD_KEYS.ESSENCE) ?? 0)
     this.drawAbilities(this.registry.get(HUD_KEYS.ABILITIES) ?? '')
+  }
+
+  drawPlate(maxHp) {
+    if (this.plateFor === maxHp) return
+    this.plateFor = maxHp
+    const { MARGIN_X, MARGIN_Y, PIP_SPACING, PLATE_PADDING_X: padX, PLATE_PADDING_Y: padY } = HUD
+    const cellsWidth = maxHp * (CELL_WIDTH + PIP_SPACING) - PIP_SPACING
+    const left = MARGIN_X - padX
+    const top = MARGIN_Y - padY
+    const width = cellsWidth + padX * 2
+    const bottom = this.digitsY + (DIGIT_HEIGHT * HUD.DIGIT_SCALE) / 2 + padY
+    const shadowSize = this.shadow.width
+    this.shadow
+      .setPosition(left - padX * 2, top - padY * 2)
+      .setScale((width + padX * 4) / shadowSize, (bottom - top + padY * 4) / shadowSize)
+      .setAlpha(HUD.PLATE_ALPHA)
+
+    const g = this.rules.clear()
+    g.fillStyle(toColor(PALETTE.hud.ornament), 1)
+    g.fillRect(left + this.diamond.width / 2, top, width - this.diamond.width / 2, 1)
+    g.fillStyle(toColor(PALETTE.hud.ornamentShade), 1)
+    g.fillRect(left + this.diamond.width / 2, top + 1, width - this.diamond.width / 2, 1)
+    g.fillRect(left, bottom, width / 2, 1)
+    this.diamond.setPosition(left, top)
+    this.scroll.setPosition(left + width, top + 1)
   }
 
   // Owned abilities sit in a row in a fixed order, packed left.

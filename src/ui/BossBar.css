@@ -24,6 +24,18 @@
   letter-spacing: 0.12em;
 }
 
+/* A curl either side of the name. */
+.boss-name::before,
+.boss-name::after {
+  content: '';
+  width: 22px;
+  height: 10px;
+  background: var(--ornament-curl) no-repeat;
+}
+.boss-name::after {
+  transform: scaleX(-1);
+}
+
 /* One diamond per round; spent rounds go dark. */
 .boss-rounds {
   display: inline-flex;

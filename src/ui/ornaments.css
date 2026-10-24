@@ -1,0 +1,14 @@
+/*
+ * Hand-drawn ornaments shared by the overlays, as inline SVG: a scrolled
+ * corner (drawn for the top-left; flipped for the others), a divider with a
+ * diamond between two curls, and a single curl for the ends of a title.
+ * Parchment-coloured hairlines, like the HUD's plate.
+ */
+:root {
+  --ornament-corner-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M3.5 24V10Q3.5 3.5 10 3.5H24'/%3E%3Cpath d='M7.5 16V11Q7.5 7.5 11 7.5H16' opacity='.55'/%3E%3Cpath d='M10.5 10.5q4 0 4 3.5t-3 3q-2 0-2-2'/%3E%3Cpath d='M3.5 3.5l1.5-1.5 1.5 1.5-1.5 1.5z' fill='%23c9bf9a'/%3E%3C/svg%3E");
+  --ornament-corner-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cg transform='matrix(-1 0 0 1 26 0)'%3E%3Cpath d='M3.5 24V10Q3.5 3.5 10 3.5H24'/%3E%3Cpath d='M7.5 16V11Q7.5 7.5 11 7.5H16' opacity='.55'/%3E%3Cpath d='M10.5 10.5q4 0 4 3.5t-3 3q-2 0-2-2'/%3E%3Cpath d='M3.5 3.5l1.5-1.5 1.5 1.5-1.5 1.5z' fill='%23c9bf9a'/%3E%3C/g%3E%3C/svg%3E");
+  --ornament-corner-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cg transform='matrix(1 0 0 -1 0 26)'%3E%3Cpath d='M3.5 24V10Q3.5 3.5 10 3.5H24'/%3E%3Cpath d='M7.5 16V11Q7.5 7.5 11 7.5H16' opacity='.55'/%3E%3Cpath d='M10.5 10.5q4 0 4 3.5t-3 3q-2 0-2-2'/%3E%3Cpath d='M3.5 3.5l1.5-1.5 1.5 1.5-1.5 1.5z' fill='%23c9bf9a'/%3E%3C/g%3E%3C/svg%3E");
+  --ornament-corner-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cg transform='matrix(-1 0 0 -1 26 26)'%3E%3Cpath d='M3.5 24V10Q3.5 3.5 10 3.5H24'/%3E%3Cpath d='M7.5 16V11Q7.5 7.5 11 7.5H16' opacity='.55'/%3E%3Cpath d='M10.5 10.5q4 0 4 3.5t-3 3q-2 0-2-2'/%3E%3Cpath d='M3.5 3.5l1.5-1.5 1.5 1.5-1.5 1.5z' fill='%23c9bf9a'/%3E%3C/g%3E%3C/svg%3E");
+  --ornament-divider: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='10' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M4 5H48M72 5H116' opacity='.7'/%3E%3Cpath d='M48 5q4-4 7-1t-1 3' /%3E%3Cpath d='M72 5q-4-4-7-1t1 3'/%3E%3Cpath d='M60 1.5l3.5 3.5-3.5 3.5-3.5-3.5z' fill='%23c9bf9a'/%3E%3C/svg%3E");
+  --ornament-curl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='10' fill='none' stroke='%23c9bf9a' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M1 5H13q5 0 5-3t-3-1.5q-2 1 0 2.5' opacity='.85'/%3E%3C/svg%3E");
+}

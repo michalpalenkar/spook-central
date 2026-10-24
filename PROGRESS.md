@@ -197,7 +197,40 @@
 - The two `InvalidStateError: Cannot suspend/resume a closed AudioContext` console errors after a reload in dev are still there (milestone 3 note).
 - Not verified on real hardware: touch feel of wall jumps and the dash button, and performance of the extra glows, trails and particles on a mid-range phone.
 
-## Next: Milestone 6 — Art pass
-- Parallax (3–5 layers per area), lighting (additive glows, vignette, fog), particles (dust/spores), area palettes for backdrops, UI frames.
-- Open the outdoor rooms (Front Steps, Spook Central rooftop) to a sky and skyline; storm and lightning for the rooftop.
-- Polish the new sprites (Librarian, mascot, Slimer, relics, gate overlays) and add squash/hit flashes to bosses.
+## Milestone 6: Art pass (done)
+
+**What's in:**
+- **Parallax, five planes per area** (`art/scenery.js` config, `systems/Scenery.js` + `systems/ParallaxLayer.js` runtime, `systems/parallaxMath.js` pure): the backdrop (area gradient, or the sky outdoors) fixed to the screen; a **far** layer (factor 0.2, or 0.1 for an outdoor skyline); a **mid** layer (0.5, or 0.35 outdoors); the play layer; and a **foreground** of near-black silhouettes (factor 1.4) along the bottom and, in most areas, hanging from the top. Layers use Phaser scroll factors, so they move with the camera's final scroll each frame (no lag); copies are re-laid only to keep a strip seamless. Interiors repeat in both directions (tall rooms show storey after storey); outdoor strips and the foreground are anchored to the room's floor or ceiling, so the skyline sinks slowly and the foreground drops away as you climb.
+- **Procedural scenery** (`art/sceneryShapes.js`, pure draw commands; `art/paintCommands.js` paints them with wrap-around; `art/sceneryTextures.js` bakes one texture per layer at boot, seeded so it never changes):
+  - Firehouse: brick bays with arched night windows; lockers, ladders, coiled hoses, a helmet rack; tyre stacks, toolboxes, cones; hooks and hose loops overhead.
+  - Library: gothic windows in cold light and a gallery rail; bookcases of muted spines with a rolling ladder; book piles, a globe, a lectern; cobwebs.
+  - Hotel: faded crimson damask, gilt wainscot, pilasters and portraits; fluted columns, drapes and glowing chandeliers; armchairs, a potted palm, a luggage cart; a curtain valance.
+  - Outdoors: night sky (stars, moon and glow, cloud banks) and a two-row skyline with water towers, setbacks and lit windows. Front Steps adds lamp posts, trees, an iron fence and a stone lion, hedges, a hydrant and a bench, with branches overhead. The rooftop adds stepped temple towers, columns and antenna masts, with parapets, gargoyles and chimneys in front.
+- **Outdoor rooms open to the sky.** New tile `^` (`TILE.SKY`): solid like the border but never drawn and not masonry, so walls under it get their top highlight. Front Steps and the Temple Roof have sky ceilings (and sky in the upper side walls, above anything reachable); Roof Access has open sky over the terrace. Rooms carry `outdoor: true` (Front Steps and all three rooftop rooms). `exits.js`, the reachability model and the area map treat sky as closed. No reachable geometry changed: the reachability tests pass unchanged.
+- **Storm over Spook Central** (`systems/stormTiming.js` pure, `systems/StormEffects.js`): slanted rain, lightning every 3.5–9 s with a jagged (sometimes branching) bolt drawn behind the skyline, and a two-pulse flash capped at 0.3 additive so the play layer stays readable. No screen shake.
+- **Lighting and atmosphere** (`systems/Atmosphere.js`, `entities/Lamp.js`, `systems/lampSpots.js`): hanging lamps placed from the grid under real ceilings (an enamel shop lamp, a reading-room lantern, a small chandelier), swaying on chains, with an additive glow and light cone; two fog banks along the floor drifting opposite ways (one behind the room, one in front); dust/spore motes that fade in and out (indoors and on Front Steps; rain replaces them on the roof); a vignette with darker top and bottom; and dust puffs at the player's feet on hard landings and jumps. Gradients and glows use linear filtering so they don't band.
+- **Area palettes** in `art/palette.js`: each area gained scenery colours (`far`, `farLight`, `window`, `mid`, `midLight`, `fore`, `foreRim`, `fog`, `lamp`, `mote`, plus `spine` for book spines), `PALETTE.sky.library` / `.rooftop`, `PALETTE.storm`, `PALETTE.atmosphere` and HUD ornament colours. Library cold teal and parchment, hotel faded crimson and gold, rooftop storm purple with lightning white.
+- **Animation polish:** bosses and ghosts flash white while the stream bites, as a rhythm (one 50 ms flash every 0.28 s of hits, `systems/hitFlash.js`) rather than a strobe. The mascot stretches on take-off and squashes on landing a stomp, easing back (`MALLOW.LEAP_STRETCH_Y`, `LAND_SQUASH_Y`). The player's squash/stretch, the 60 ms hit-stop and the existing (sparing) shakes are unchanged.
+- **UI frames:** HP cells are now mask-shaped battery cells (terminals as horns, eye slits, tapered chin) on a soft dark plate between thin parchment rules with a diamond and a scroll (`UIScene`). HTML overlays share inline-SVG ornaments (`ui/ornaments.css`): scrolled corners on the map frame, a diamond-and-curls divider under the area banner and map title, curls either side of the boss name.
+- New tuning in `constants.js`: `SCENERY`, `ATMOSPHERE`, `STORM`, `HIT_FLASH`, new `DEPTH` entries, `HUD.PLATE_*`, `MALLOW` squash.
+
+**Verified:**
+- `pnpm lint`, `pnpm test` (389 tests, 106 new: RNG, parallax coverage/anchoring incl. a moved camera, scenery variants/layer order/3–5 planes/palette keys and hues, every painter's commands valid and deterministic, foreground sparseness, wrap-around, lamp placement, dust count, hit-flash rhythm, storm timing/flash curve/bolts, sky tile parsing and autotiling, outdoor rooms' sky rows, lamp and ornament pixel art) and `pnpm build` all pass. The reachability tests pass with the sky tiles.
+- In the dev server (built-in browser, loop stepped at 60 fps): screenshots at **1280×720** of the Garage, Front Steps, the Archives, the Vault (Librarian awake, hit flash, boss bar), the Hotel Lobby and Elevator Shaft, Roof Access, the bottom and top of The Climb, the Temple Roof (with and without a lightning strike; the mascot white under the stream with the boss bar) and the map; and at **740×360** with touch emulation of the Garage, Front Steps (with the area banner), the Ballroom (Slimer) and the Temple Roof. All checked by eye.
+- Sky tiles collide (the Temple Roof's upper side wall stops the player); dust puffs fire on a hard landing; the mascot's scale goes 0.85 → 1.15 at take-off and 0.72 on landing, then eases back; Garage ↔ Front Steps still transitions both ways.
+- **Performance (rough):** stepping 240 frames per room in desktop Chrome took 0.1–0.45 ms per frame (update plus render submission) in the Temple Roof (storm, ~48 rain particles), Ballroom, Stacks and Garage, with 40–80 game objects. GPU fill is about six screens of overdraw at 480×270 (the canvas is upscaled by CSS), so it should be cheap on a phone.
+
+**Known issues / not verified:**
+- **Not measured on a real mid-range phone.** The numbers above are desktop CPU time. Fill-rate and texture memory (19 baked strips of up to 640×256 plus two skies, about 7 MB as GPU textures, with their canvas copies on top) look safe but need a device check over `pnpm dev --host`.
+- The foreground silhouettes can briefly cover the player's feet or a ghost near the bottom edge (by design, kept low and under 50 % of the width), and a hanging hose sits near the HUD in the Garage. Worth a playtest.
+- Lamps and fog are decoration only. Lamps hang under any long ceiling, including the undersides of thick blocks.
+- Fire poles in rooms with a sky ceiling run up to the top of the room.
+- The mask-shaped HP cells read a little like cat faces at 1×. A matter of taste; easy to redraw in `art/hudGlyphs.js`.
+- Chrome logs "Blocked call to navigator.vibrate" when the player is hit before any tap on the page (seen in scripted tests). Haptics could check `navigator.userActivation.hasBeenActive` first (milestone 7).
+- In the built-in browser, screenshots right after stepping the sleeping loop sometimes show the previous frame; step again and wait ~0.5 s.
+- Still open from earlier milestones: the `AudioContext` console errors after a dev reload, the chunk-size warning, playtesting by hand.
+
+## Next: Milestone 7 — Polish
+- Audio (Web Audio: proton hum, trap snap, ghost wail, jump, thunder for the storm), mute and volume, started on the first gesture.
+- Title screen (New game / Continue), pause and settings (volume, touch-control opacity, haptics), a proper ending flow.
+- Performance pass on mobile, code-split Phaser, silence the dev `AudioContext` errors, gate haptics on user activation.

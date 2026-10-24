@@ -16,7 +16,7 @@ const isVertical = (edge) => edge === 'left' || edge === 'right'
 
 // Border tiles that close a room. Gates (spectral walls, weak floors) may sit
 // on an exit: they open once the player has the ability.
-const isClosed = (tile) => tile === TILE.SOLID || tile === TILE.SLIME
+const isClosed = (tile) => tile === TILE.SOLID || tile === TILE.SLIME || tile === TILE.SKY
 
 /** Length of an edge in tiles. */
 function edgeLength(room, edge) {

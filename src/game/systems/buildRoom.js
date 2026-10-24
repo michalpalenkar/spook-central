@@ -1,5 +1,5 @@
 import { TILE_SIZE } from '../constants.js'
-import { BARRIER_FRAME, PLATFORM_FRAME, SLIME_FRAME_START, SOLID_FRAME_COUNT, tileIndexAt, toTileIndices } from '../levels/autotile.js'
+import { BARRIER_FRAME, PLATFORM_FRAME, SKY_FRAME, SLIME_FRAME_START, SOLID_FRAME_COUNT, tileIndexAt, toTileIndices } from '../levels/autotile.js'
 import { canLandOnPlatform } from './oneWayPlatform.js'
 
 /**
@@ -19,7 +19,7 @@ export function buildRoom(scene, tiles, tilesKey) {
   // Solid faces are computed first, while platforms don't collide, so walls
   // next to a platform keep their side faces.
   layer.setCollisionBetween(0, SOLID_FRAME_COUNT - 1)
-  layer.setCollisionBetween(SLIME_FRAME_START, BARRIER_FRAME)
+  layer.setCollisionBetween(SLIME_FRAME_START, SKY_FRAME)
   layer.forEachTile((tile) => {
     if (tile.index !== PLATFORM_FRAME) return
     tile.setCollision(false, false, true, false, false)

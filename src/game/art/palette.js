@@ -18,6 +18,17 @@ export const PALETTE = {
     plank: '#3b2f2a',
     plankHighlight: '#8c7660',
     plankShadow: '#1d1614',
+    // Scenery: far architecture is paler (fog), nearer layers darker.
+    far: '#10172a',
+    farLight: '#212c45',
+    window: '#5d77a8',
+    mid: '#0b0f1b',
+    midLight: '#34405e',
+    fore: '#030409',
+    foreRim: '#4a5675',
+    fog: '#4b5f8f',
+    lamp: '#ffc276',
+    mote: '#c9cfe0',
   },
 
   // Cold teal stone and parchment.
@@ -33,6 +44,17 @@ export const PALETTE = {
     plank: '#3d3424',
     plankHighlight: '#c9b98a',
     plankShadow: '#1a160e',
+    far: '#0d1e22',
+    farLight: '#21403f',
+    window: '#8fd1c8',
+    mid: '#08130f',
+    midLight: '#2f5149',
+    spine: ['#3b4f45', '#5a4a33', '#2c4048', '#553235', '#6b6448'],
+    fore: '#020606',
+    foreRim: '#6d7d6c',
+    fog: '#4f8f88',
+    lamp: '#f0dfa8',
+    mote: '#efe4bf',
   },
 
   // Faded crimson wallpaper and tarnished gold.
@@ -48,6 +70,16 @@ export const PALETTE = {
     plank: '#4a3418',
     plankHighlight: '#d8b56a',
     plankShadow: '#1e1408',
+    far: '#220c12',
+    farLight: '#3c171f',
+    window: '#d9a75a',
+    mid: '#14060a',
+    midLight: '#8a6a34',
+    fore: '#070203',
+    foreRim: '#8a6a3a',
+    fog: '#7a3640',
+    lamp: '#ffcf7a',
+    mote: '#f0cf86',
   },
 
   // Storm purple stone, lightning-white edges.
@@ -63,6 +95,59 @@ export const PALETTE = {
     plank: '#2f2a3c',
     plankHighlight: '#b9b4d8',
     plankShadow: '#121019',
+    far: '#181130',
+    farLight: '#3a2f63',
+    window: '#cfc8ff',
+    mid: '#0d0920',
+    midLight: '#6c62a6',
+    fore: '#040309',
+    foreRim: '#8a82c4',
+    fog: '#5a4c92',
+    lamp: '#e6e4ff',
+    mote: '#b9b4e8',
+  },
+
+  // Outdoor rooms: the night sky and the skyline. Keyed by area.
+  sky: {
+    library: {
+      top: '#03080d',
+      bottom: '#163038',
+      moon: '#e7efe0',
+      moonGlow: '#8fd1c8',
+      star: '#cfe4dc',
+      cloud: '#0e2128',
+      cloudLight: '#2a4b50',
+      skyline: '#0c1a20',
+      skylineBack: '#11252a',
+      skylineLight: '#24403f',
+      skylineWindow: '#e6d28c',
+    },
+    rooftop: {
+      top: '#07040f',
+      bottom: '#2a2050',
+      moon: '#f4f2ff',
+      moonGlow: '#8a7fd0',
+      star: '#d8d4ff',
+      cloud: '#1a1335',
+      cloudLight: '#4a3f80',
+      skyline: '#120c26',
+      skylineBack: '#1f1842',
+      skylineLight: '#3a3070',
+      skylineWindow: '#f1dfa0',
+    },
+  },
+
+  storm: {
+    bolt: '#f4f2ff',
+    boltCore: '#ffffff',
+    flash: '#e9e6ff',
+    rain: '#b9b4e8',
+  },
+
+  // Screen-space atmosphere shared by every area.
+  atmosphere: {
+    vignette: '#020308',
+    dust: '#d8d2bd',
   },
 
   // Gates: slimed walls, ectoplasm barriers, revealed spectral walls and
@@ -122,6 +207,9 @@ export const PALETTE = {
   },
 
   hud: {
+    plate: '#05060c',
+    ornament: '#c9bf9a',
+    ornamentShade: '#4a4536',
     frame: '#8a93ad',
     frameShadow: '#05060c',
     cellEmpty: '#141826',
@@ -192,6 +280,8 @@ export const PALETTE = {
   },
 
   deathFlash: 0xffffff,
+  // Bosses and ghosts flash this colour while the stream bites.
+  hitFlash: 0xffffff,
 
   // Keyed by the characters used in art/playerFrames.js.
   player: {

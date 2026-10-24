@@ -101,6 +101,11 @@ export const HAPTICS = {
 // Draw order of world objects.
 export const DEPTH = {
   BACKDROP: -10,
+  SKY_BOLT: -9.5,
+  SCENERY_FAR: -9,
+  SCENERY_MID: -8,
+  FOG_BACK: -7,
+  LAMP: -2,
   POLE: -1,
   SHOP: -1,
   ROOM: 0,
@@ -115,6 +120,114 @@ export const DEPTH = {
   BOSS: 16,
   PROJECTILE: 17,
   STREAM: 20,
+  LIGHT: 3,
+  DUST: 12,
+  FOG: 24,
+  RAIN: 26,
+  FOREGROUND: 30,
+  FLASH: 34,
+  VIGNETTE: 40,
+}
+
+// Parallax scenery (art/scenery.js). Factors scale the camera's scroll: 0
+// stays put, 1 moves with the room, above 1 passes in front of it. WIDTH is
+// the period a layer repeats at; HEIGHT the strip's height.
+export const SCENERY = {
+  FAR: { FACTOR_X: 0.2, FACTOR_Y: 0.2, WIDTH: 512, HEIGHT: 256 },
+  MID: { FACTOR_X: 0.5, FACTOR_Y: 0.5, WIDTH: 512, HEIGHT: 256 },
+  SKYLINE: { FACTOR_X: 0.1, FACTOR_Y: 0.05, WIDTH: 512, HEIGHT: 150 },
+  STREET: { FACTOR_X: 0.35, FACTOR_Y: 0.2, WIDTH: 512, HEIGHT: 150 },
+  FORE_BOTTOM: { FACTOR_X: 1.4, FACTOR_Y: 1.25, WIDTH: 640, HEIGHT: 72 },
+  FORE_TOP: { FACTOR_X: 1.4, FACTOR_Y: 1.25, WIDTH: 640, HEIGHT: 56 },
+  // Seed for the procedural layers, so every visit looks the same.
+  SEED: 1984,
+}
+
+// Lighting and atmosphere (systems/Atmosphere.js, entities/Lamp.js).
+export const ATMOSPHERE = {
+  VIGNETTE_ALPHA: 0.62,
+  // Inner radius of the vignette's clear centre, as a fraction of the half-diagonal.
+  VIGNETTE_INNER: 0.45,
+  // Two fog banks: one behind the room, one drifting the other way in front.
+  FOG_BACK_ALPHA: 0.28,
+  FOG_BACK_FACTOR: 0.8,
+  FOG_ALPHA: 0.2,
+  FOG_FRONT_FACTOR: 1.1,
+  FOG_HEIGHT: 64,
+  FOG_PERIOD: 256,
+  FOG_DRIFT_SPEED: 6,
+  // Floating dust: motes per 1000 px² of room, capped.
+  DUST_DENSITY: 0.1,
+  DUST_MIN: 16,
+  DUST_MAX: 60,
+  DUST_LIFETIME: 7,
+  DUST_ALPHA: 0.55,
+  DUST_DRIFT: 6,
+  DUST_MIN_SCALE: 0.5,
+  DUST_RISE: 7,
+  // Dust kicked up by the player's feet.
+  PUFF_MIN_LANDING_SPEED: 220,
+  PUFF_COUNT: 5,
+  PUFF_LIFETIME: 0.4,
+  PUFF_SPEED: 40,
+  PUFF_ALPHA: 0.7,
+  PUFF_END_SCALE: 0.4,
+  // Hanging lamps: at most one per this many tiles of ceiling, only above
+  // open space this tall, at most MAX per room.
+  LAMP_SPACING: 12,
+  LAMP_MIN_CLEARANCE: 6,
+  LAMP_MAX: 5,
+  LAMP_CHAIN_MIN: 1,
+  LAMP_CHAIN_MAX: 3,
+  LAMP_SWAY: 0.04,
+  LAMP_SWAY_SPEED: 1.3,
+  LIGHT_SCALE: 1.6,
+  LIGHT_ALPHA: 0.32,
+  LIGHT_FLICKER: 0.06,
+  // Two out-of-step sines make the flicker irregular.
+  LIGHT_FLICKER_SPEED_A: 9.1,
+  LIGHT_FLICKER_SPEED_B: 3.7,
+  // Neighbouring lamps sway out of step: phase offset per tile.
+  LAMP_PHASE_PER_TILE: 0.7,
+  CONE_ALPHA: 0.1,
+  LIGHT_SIZE: 128,
+}
+
+// Rooftop storm (systems/stormTiming.js, systems/StormEffects.js).
+export const STORM = {
+  STRIKE_MIN_DELAY: 3.5,
+  STRIKE_MAX_DELAY: 9,
+  FIRST_STRIKE_DELAY: 1.5,
+  // Flash: a bright peak, a dip, a second peak, then a fade.
+  FLASH_PEAK: 0.3,
+  FLASH_SECOND_PEAK: 0.2,
+  FLASH_DIP_AT: 0.06,
+  FLASH_SECOND_AT: 0.11,
+  FLASH_TIME: 0.55,
+  BOLT_SEGMENTS: 9,
+  BOLT_JITTER: 14,
+  BOLT_TIME: 0.22,
+  BOLT_BRANCH_CHANCE: 0.35,
+  // Bolts strike across the sky (clear of the screen edges) and end behind the skyline.
+  BOLT_MARGIN: 40,
+  BOLT_BOTTOM: 0.62,
+  BOLT_WIDTH: 3,
+  BOLT_HALO_ALPHA: 0.35,
+  BOLT_BRANCH_ALPHA: 0.7,
+  RAIN_INTERVAL: 0.018,
+  RAIN_LIFETIME: 0.75,
+  RAIN_SPEED_X: -90,
+  RAIN_SPEED_Y: 380,
+  RAIN_ALPHA: 0.35,
+}
+
+// White flashes on a boss while the stream bites: one short flash every
+// INTERVAL seconds of continuous hits.
+export const HIT_FLASH = {
+  INTERVAL: 0.28,
+  DURATION: 0.05,
+  // A boss not hit for this long stops flashing at once.
+  LINGER: 0.1,
 }
 
 // Combat. Damage is in HP points, times in seconds, distances in px.
@@ -330,6 +443,10 @@ export const MALLOW = {
   // Squash while crouching or landing, and kneeling height when weakened.
   CROUCH_SCALE_Y: 0.85,
   KNEEL_SCALE_Y: 0.72,
+  // Squash on landing a stomp and stretch on take-off, easing back at RECOVERY_RATE.
+  LAND_SQUASH_Y: 0.7,
+  LEAP_STRETCH_Y: 1.18,
+  SQUASH_RECOVERY_RATE: 10,
   WALK_BOB_AMPLITUDE: 2,
   WALK_BOB_SPEED: 7,
   GLOW_SCALE: 3.4,
@@ -476,6 +593,10 @@ export const HUD = {
   ABILITY_ROW_GAP: 14,
   ABILITY_SPACING: 13,
   ABILITY_SCALE: 0.75,
+  // Ornamental plate behind the HUD.
+  PLATE_PADDING_X: 6,
+  PLATE_PADDING_Y: 4,
+  PLATE_ALPHA: 0.5,
 }
 
 // Walking from one room into the next.

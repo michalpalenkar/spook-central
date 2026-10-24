@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BARRIER_FRAME, EDGE, EMPTY_INDEX, PLATFORM_FRAME, SLIME_FRAME_START, edgeMask, isSlimeFrame, toTileIndices } from './autotile.js'
+import { BARRIER_FRAME, EDGE, EMPTY_INDEX, PLATFORM_FRAME, SKY_FRAME, SLIME_FRAME_START, TILESET_FRAME_COUNT, edgeMask, isSlimeFrame, toTileIndices } from './autotile.js'
 import { parseRoom } from './parseRoom.js'
 
 const tilesOf = (grid) => parseRoom({ id: 't', grid }).tiles
@@ -54,3 +54,13 @@ describe('gate tiles', () => {
   })
 })
 
+
+describe('open sky', () => {
+  it('uses the transparent sky frame, and walls beneath it show their top edge', () => {
+    const { tiles } = parseRoom({ id: 'r', grid: ['^^^', '#.#', '###'] })
+    const indices = toTileIndices(tiles)
+    expect(indices[0]).toEqual([SKY_FRAME, SKY_FRAME, SKY_FRAME])
+    expect(edgeMask(tiles, 0, 1) & EDGE.TOP).toBe(EDGE.TOP)
+    expect(SKY_FRAME).toBe(TILESET_FRAME_COUNT - 1)
+  })
+})

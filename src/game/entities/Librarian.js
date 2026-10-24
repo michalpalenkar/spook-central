@@ -1,10 +1,11 @@
 import Phaser from 'phaser'
-import { DEPTH, GHOST, LIBRARIAN, TILE_SIZE } from '../constants.js'
+import { DEPTH, GHOST, HIT_FLASH, LIBRARIAN, TILE_SIZE } from '../constants.js'
 import { toColor } from '../art/color.js'
 import { COMBAT_TEXTURES } from '../art/combatTextures.js'
 import { PALETTE } from '../art/palette.js'
 import { PROGRESSION_ANIMS, PROGRESSION_TEXTURES } from '../art/progressionTextures.js'
 import { damageGhost } from '../systems/ghostState.js'
+import { createHitFlash, hitFlashOn, stepHitFlash } from '../systems/hitFlash.js'
 import {
   LIBRARIAN_STATE,
   createLibrarianBrain,
@@ -43,6 +44,8 @@ export class Librarian {
     )
     this.tethered = false
     this.time = 0
+    this.hitFlash = createHitFlash()
+    this.hitThisFrame = false
     this.captureFrom = null
 
     this.glow = scene.add
@@ -111,7 +114,9 @@ export class Librarian {
   }
 
   takeStreamDamage(amount) {
-    if (this.targetable) damageGhost(this.brain.health, amount, LIBRARIAN)
+    if (!this.targetable) return
+    damageGhost(this.brain.health, amount, LIBRARIAN)
+    this.hitThisFrame = true
   }
 
   recoil() {}
@@ -119,6 +124,8 @@ export class Librarian {
   /** Returns the brain's events ({ woke, book, stunned, recovered }). */
   update(dt, player, triggered) {
     this.time += dt
+    stepHitFlash(this.hitFlash, dt, this.hitThisFrame, HIT_FLASH)
+    this.hitThisFrame = false
     const floor = groundBelow(this.tiles, this.brain.x, this.brain.y)
     const events = stepLibrarian(this.brain, {
       playerX: player.x,
@@ -185,6 +192,7 @@ export class Librarian {
     } else {
       this.sprite.clearTint().setAlpha(1)
     }
+    if (hitFlashOn(this.hitFlash, HIT_FLASH)) this.sprite.setTintFill(PALETTE.hitFlash)
   }
 
   destroy() {

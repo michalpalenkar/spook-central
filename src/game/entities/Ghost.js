@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { DEPTH, GHOST, TILE_SIZE } from '../constants.js'
+import { DEPTH, GHOST, HIT_FLASH, TILE_SIZE } from '../constants.js'
 import { toColor } from '../art/color.js'
 import { COMBAT_TEXTURES, GHOST_ANIMS } from '../art/combatTextures.js'
 import { PALETTE } from '../art/palette.js'
@@ -13,6 +13,7 @@ import {
   resetGhostState,
   tickGhostState,
 } from '../systems/ghostState.js'
+import { createHitFlash, hitFlashOn, stepHitFlash } from '../systems/hitFlash.js'
 import { createSteering, startRecoil, stepSteering } from '../systems/ghostSteering.js'
 import { groundBelow } from '../systems/lineOfSight.js'
 import { circleIntersectsRect } from '../systems/overlap.js'
@@ -88,6 +89,8 @@ export class Ghost {
     this.time = Math.random() * Math.PI * 2
     this.tethered = false
     this.captureFrom = null
+    this.hitFlash = createHitFlash()
+    this.hitThisFrame = false
     for (const object of [this.sprite, this.glow]) object.setVisible(true).setScale(1).setAlpha(1)
     this.trail.start()
     this.render()
@@ -116,6 +119,7 @@ export class Ghost {
 
   takeStreamDamage(amount) {
     damageGhost(this.state, amount, this.tuning)
+    this.hitThisFrame = true
   }
 
   /** Called when the ghost touches the player. */
@@ -125,6 +129,8 @@ export class Ghost {
 
   update(dt, player) {
     this.time += dt
+    stepHitFlash(this.hitFlash, dt, this.hitThisFrame, HIT_FLASH)
+    this.hitThisFrame = false
     if (this.state.status === GHOST_STATUS.FREE) {
       tickGhostState(this.state, dt, this.tuning)
       stepSteering(
@@ -212,5 +218,6 @@ export class Ghost {
     } else {
       this.sprite.clearTint().setAlpha(1)
     }
+    if (hitFlashOn(this.hitFlash, HIT_FLASH)) this.sprite.setTintFill(PALETTE.hitFlash)
   }
 }
