@@ -2,18 +2,41 @@ export const TILE = {
   EMPTY: 0,
   SOLID: 1,
   PLATFORM: 2,
+  // Gates (see systems/abilities.js). A spectral wall looks and acts like
+  // brick until the PKE Meter reveals it as an illusion; a weak floor holds
+  // until the PKE Meter shows its cracks and the player stomps through it.
+  SPECTRAL: 3,
+  WEAK_FLOOR: 4,
+  // Ectoplasm barrier: solid, except to an Ecto-Dash.
+  BARRIER: 5,
+  // Slimed wall: solid; Slime Boots cling to it.
+  SLIME: 6,
 }
 
 const LEGEND = {
   '.': TILE.EMPTY,
   '#': TILE.SOLID,
   '=': TILE.PLATFORM,
+  H: TILE.SPECTRAL,
+  B: TILE.WEAK_FLOOR,
+  E: TILE.BARRIER,
+  S: TILE.SLIME,
+}
+
+const WALLS = new Set([TILE.SOLID, TILE.SPECTRAL, TILE.WEAK_FLOOR, TILE.SLIME])
+
+/**
+ * Whether a tile is masonry: drawn and treated as wall by line of sight,
+ * floors and the map. Barriers and platforms are not walls.
+ */
+export function isWallTile(tile) {
+  return WALLS.has(tile)
 }
 
 const SPAWN_MARKER = 'P'
 
 /**
- * Turns a room definition into a tile grid:
+ * Turns a room definition into a tile grid (legend above; `P` is the spawn):
  * { id, grid: string[], entities?, exits?, area?, name?, origin? }.
  *
  * `P` in the grid marks the new-game player spawn and is stored as empty; a

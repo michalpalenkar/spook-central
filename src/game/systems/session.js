@@ -10,6 +10,10 @@ import { createSave } from './saveFormat.js'
 //   the essence they had when they saved.
 // - `captured` holds ghosts caught since the last rest ("roomId/ghostId");
 //   they stay gone until the player rests or dies, then every ghost returns.
+// - `abilities` and `flags` (bosses beaten, goods bought) are never lost;
+//   gaining one writes a checkpoint save at once (checkpointSave).
+// - `broken` holds weak floors stomped through this session ("roomId/x,y").
+// - `chase` is Slimer's progress through the hotel (systems/slimerChase.js).
 
 export const ENTRY = {
   SPAWN: 'spawn',
@@ -17,7 +21,7 @@ export const ENTRY = {
   EXIT: 'exit',
 }
 
-function baseSession({ roomId, entry, maxHp, essence, visited, abilities }) {
+function baseSession({ roomId, entry, maxHp, essence, visited, abilities, flags }) {
   const wallet = createWallet()
   wallet.essence = essence
   return {
@@ -28,8 +32,11 @@ function baseSession({ roomId, entry, maxHp, essence, visited, abilities }) {
     wallet,
     visited: new Set([...visited, roomId]),
     abilities: new Set(abilities),
+    flags: new Set(flags),
     respawn: { roomId, entry: entry.type, essence },
     captured: new Set(),
+    broken: new Set(),
+    chase: { stage: 0 },
   }
 }
 
@@ -42,6 +49,7 @@ export function newSession(world) {
     essence: 0,
     visited: [],
     abilities: [],
+    flags: [],
   })
 }
 
@@ -54,6 +62,7 @@ export function sessionFromSave(save) {
     essence: save.essence,
     visited: save.visited,
     abilities: save.abilities,
+    flags: save.flags ?? [],
   })
 }
 
@@ -96,8 +105,38 @@ export function restAtPole(session, roomId, savedAt) {
     maxHp: session.maxHp,
     visited: session.visited,
     abilities: session.abilities,
+    flags: session.flags,
     savedAt,
   })
+}
+
+/**
+ * A save written when the player gains something permanent (an ability, a
+ * boss beaten, goods bought) away from a fire pole: it keeps the last pole
+ * and the essence held there, plus everything gained since. Returns the save.
+ */
+export function checkpointSave(session, savedAt) {
+  return createSave({
+    roomId: session.respawn.roomId,
+    essence: session.respawn.essence,
+    maxHp: session.maxHp,
+    visited: session.visited,
+    abilities: session.abilities,
+    flags: session.flags,
+    savedAt,
+  })
+}
+
+const tileKey = (roomId, x, y) => `${roomId}/${x},${y}`
+
+export function markBroken(session, roomId, cells) {
+  for (const { x, y } of cells) session.broken.add(tileKey(roomId, x, y))
+}
+
+/** Weak floors broken in `roomId`, as a Set of "x,y". */
+export function brokenIn(session, roomId) {
+  const prefix = `${roomId}/`
+  return new Set([...session.broken].filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length)))
 }
 
 /**

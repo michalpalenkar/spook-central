@@ -14,6 +14,12 @@ describe('hintAt', () => {
     expect(hintAt(entities, 5 * T - 1, 3 * T - 1, T)).toBe('move')
   })
 
+  it('shows a zone that requires an ability only once the player has it', () => {
+    const gated = [{ type: 'hint', id: 'weakFloor', x: 0, y: 0, width: 2, height: 2, requires: 'pke-meter' }]
+    expect(hintAt(gated, T, T, T)).toBeNull()
+    expect(hintAt(gated, T, T, T, new Set(['pke-meter']))).toBe('weakFloor')
+  })
+
   it('returns null outside every zone', () => {
     expect(hintAt(entities, 5 * T, 2 * T, T)).toBeNull()
     expect(hintAt(entities, 1 * T, 2 * T, T)).toBeNull()

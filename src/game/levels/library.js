@@ -1,7 +1,7 @@
 // NY Public Library: the front steps, the reading room, the stacks (a tall
-// shaft), the archives underneath, and the vault where the Librarian will
-// wait (milestone 5). Reading room → stacks → archives → reading room forms a
-// loop, so the player can backtrack either way.
+// shaft), the archives underneath (with a fire pole), and the vault where
+// the Librarian waits with the PKE Meter. Reading room → stacks → archives →
+// reading room forms a loop, so the player can backtrack either way.
 //
 // `#` solid, `=` one-way platform. Origins, entity positions and exit spans
 // are in tiles (see levels/exits.js).
@@ -153,6 +153,7 @@ export const LIBRARY_ROOMS = [
       '######################################################################',
     ],
     entities: [
+      { type: 'pole', id: 'pole-archives', x: 56, y: 14 },
       { type: 'ghost', id: 'ghost-archives-west', x: 38, y: 9 },
       { type: 'ghost', id: 'ghost-archives-east', x: 52, y: 7 },
     ],
@@ -186,8 +187,25 @@ export const LIBRARY_ROOMS = [
       '##############################',
       '##############################',
     ],
-    // The Librarian mini-boss and the PKE Meter reward arrive in milestone 5.
-    entities: [{ type: 'hint', id: 'vault', x: 1, y: 8, width: 28, height: 7 }],
+    // The Librarian wakes when the player walks past `triggerX` (tiles),
+    // drifts between `anchors`, and seals the vault until she is trapped.
+    // Her reward, the PKE Meter, is set in systems/bosses.js.
+    entities: [
+      { type: 'hint', id: 'vault', x: 1, y: 8, width: 8, height: 7 },
+      {
+        type: 'boss',
+        id: 'librarian',
+        x: 20,
+        y: 5,
+        triggerX: 9,
+        anchors: [
+          { x: 8, y: 4 },
+          { x: 22, y: 3 },
+          { x: 14, y: 9 },
+          { x: 24, y: 8 },
+        ],
+      },
+    ],
     exits: [{ edge: 'left', span: [11, 14], to: 'library-archives' }],
   },
 ]

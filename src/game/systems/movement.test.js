@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PLAYER, TILE_SIZE } from '../constants.js'
-import { approach, createMovementState, stepMovement } from './movement.js'
+import { PLAYER, PLAYER_MOVES, TILE_SIZE } from '../constants.js'
+import { approach, createMovementState, isDashing, stepMovement } from './movement.js'
 
 const DT = 1 / 60
 
@@ -165,5 +165,151 @@ describe('jump buffering', () => {
 
   it('ignores a press made too long before landing', () => {
     expect(bufferedJump(Math.ceil(PLAYER.JUMP_BUFFER_TIME / DT) + 3)).toBe(false)
+  })
+})
+
+// Ability movement: a free body with optional walls, for dash and wall jump.
+// `wallLeftX` is a slimed wall's face on the left (bodies stop there), and
+// the ground is at y = 0 when `ground` is set.
+function createAbilitySim({ ground = false, wallLeftX = null, startY = -100, abilities = { dash: true, cling: true } } = {}) {
+  const state = createMovementState()
+  const body = { x: 0, y: startY, vx: 0, vy: 0 }
+  function step(input = {}, contact = {}) {
+    const grounded = ground && body.y >= 0
+    if (grounded) {
+      body.y = 0
+      if (body.vy > 0) body.vy = 0
+    }
+    const touchingWall = wallLeftX !== null && body.x <= wallLeftX + 0.5
+    if (touchingWall && body.vx < 0) body.vx = 0
+    const events = stepMovement(
+      state,
+      { move: 0, jumpPressed: false, jumpHeld: false, dashPressed: false, facing: 1, abilities, ...input },
+      { grounded, vx: body.vx, vy: body.vy, wall: touchingWall ? -1 : 0, insideBarrier: false, ...contact },
+      DT,
+    )
+    body.vx = state.vx
+    body.vy = state.vy
+    body.x += body.vx * DT
+    body.y += body.vy * DT
+    if (wallLeftX !== null) body.x = Math.max(body.x, wallLeftX)
+    if (ground && body.y > 0) body.y = 0
+    return events
+  }
+  return { state, body, step }
+}
+
+describe('Ecto-Dash', () => {
+  it('dashes about four tiles in the facing direction, ignoring gravity', () => {
+    const sim = createAbilitySim()
+    const y0 = sim.body.y
+    expect(sim.step({ dashPressed: true, facing: -1 }).dashed).toBe(true)
+    for (let i = 0; i < 9; i++) sim.step()
+    expect(sim.body.x).toBeCloseTo(-PLAYER_MOVES.DASH_SPEED * PLAYER_MOVES.DASH_TIME, -1)
+    expect(sim.body.y).toBe(y0)
+    expect(-sim.body.x / TILE_SIZE).toBeGreaterThan(4)
+  })
+
+  it('goes the way the player is pushing rather than facing', () => {
+    const sim = createAbilitySim()
+    sim.step({ dashPressed: true, facing: 1, move: -1 })
+    expect(sim.state.vx).toBeLessThan(0)
+  })
+
+  it('works once in the air, and again after landing', () => {
+    const air = createAbilitySim()
+    expect(air.step({ dashPressed: true }).dashed).toBe(true)
+    run(air, 30)
+    expect(air.state.grounded).toBe(false)
+    expect(air.step({ dashPressed: true }).dashed).toBe(false)
+
+    const sim = createAbilitySim({ ground: true, startY: -40 })
+    sim.step({ dashPressed: true })
+    run(sim, 60)
+    expect(sim.state.grounded).toBe(true)
+    expect(sim.step({ dashPressed: true }).dashed).toBe(true)
+  })
+
+  it('waits out its cooldown on the ground', () => {
+    const sim = createAbilitySim({ ground: true, startY: 0 })
+    sim.step({ dashPressed: true })
+    run(sim, 11)
+    expect(sim.step({ dashPressed: true }).dashed).toBe(false)
+    run(sim, 20)
+    expect(sim.step({ dashPressed: true }).dashed).toBe(true)
+  })
+
+  it('needs the ability', () => {
+    const sim = createAbilitySim({ abilities: { dash: false, cling: false } })
+    expect(sim.step({ dashPressed: true }).dashed).toBe(false)
+  })
+
+  it('keeps going while inside an ectoplasm barrier, up to a limit', () => {
+    const sim = createAbilitySim()
+    sim.step({ dashPressed: true })
+    let frames = 1
+    while (isDashing(sim.state) && frames < 60) {
+      sim.step({}, { insideBarrier: true })
+      frames++
+    }
+    expect(frames * DT).toBeGreaterThan(PLAYER_MOVES.DASH_TIME + 0.05)
+    expect(frames * DT).toBeLessThanOrEqual(PLAYER_MOVES.DASH_MAX_TIME + 2 * DT)
+  })
+})
+
+describe('Slime Boots', () => {
+  it('cling to a slimed wall when pushing into it, capping the slide', () => {
+    const sim = createAbilitySim({ wallLeftX: 0 })
+    run(sim, 40, { move: -1 })
+    expect(sim.state.wallSide).toBe(-1)
+    expect(sim.state.vy).toBeLessThanOrEqual(PLAYER_MOVES.WALL_SLIDE_SPEED)
+  })
+
+  it('do nothing without the ability', () => {
+    const sim = createAbilitySim({ wallLeftX: 0, abilities: { dash: false, cling: false } })
+    run(sim, 40, { move: -1 })
+    expect(sim.state.wallSide).toBe(0)
+    expect(sim.state.vy).toBeGreaterThan(PLAYER_MOVES.WALL_SLIDE_SPEED)
+  })
+
+  it('wall-jump up and away from the wall, ignoring input briefly', () => {
+    const sim = createAbilitySim({ wallLeftX: 0 })
+    run(sim, 10, { move: -1 })
+    const events = sim.step({ move: -1, jumpPressed: true, jumpHeld: true })
+    expect(events.wallJumped).toBe(true)
+    expect(sim.state.vx).toBe(PLAYER_MOVES.WALL_JUMP_PUSH)
+    expect(sim.state.vy).toBeLessThan(-PLAYER_MOVES.WALL_JUMP_VELOCITY + 30)
+    sim.step({ move: -1, jumpHeld: true })
+    expect(sim.state.vx).toBe(PLAYER_MOVES.WALL_JUMP_PUSH)
+  })
+
+  it('allow a wall jump just after letting go', () => {
+    const sim = createAbilitySim({ wallLeftX: 0 })
+    run(sim, 10, { move: -1 })
+    sim.step({ move: 1 })
+    expect(sim.state.wallSide).toBe(0)
+    expect(sim.step({ jumpPressed: true, jumpHeld: true }).wallJumped).toBe(true)
+  })
+
+  it('can climb a single slimed wall by jumping while holding toward it', () => {
+    const sim = createAbilitySim({ wallLeftX: 0 })
+    run(sim, 5, { move: -1 })
+    const start = sim.body.y
+    for (let i = 0; i < 6; i++) {
+      sim.step({ move: -1, jumpPressed: true, jumpHeld: true })
+      run(sim, 22, { move: -1, jumpHeld: true })
+      run(sim, 4, { move: -1 })
+    }
+    expect(start - sim.body.y).toBeGreaterThan(5 * TILE_SIZE)
+  })
+
+  it('refresh the air dash while clinging', () => {
+    const sim = createAbilitySim({ wallLeftX: 0 })
+    sim.step({ dashPressed: true, facing: 1 })
+    run(sim, 30)
+    expect(sim.state.airDashReady).toBe(false)
+    run(sim, 60, { move: -1 })
+    expect(sim.state.wallSide).toBe(-1)
+    expect(sim.state.airDashReady).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Game from './Game.jsx'
+import { BossBar } from './ui/BossBar.jsx'
 import { GameBridge } from './game/systems/GameBridge.js'
 import { TouchInput } from './game/systems/TouchInput.js'
 import { MapMenu } from './ui/Menus.jsx'
@@ -19,6 +20,7 @@ function App() {
     <>
       <Game touchInput={touchInput} bridge={bridge} />
       <WorldMessages bridge={bridge} isTouchDevice={isTouchDevice} />
+      <BossBar bridge={bridge} />
       <MapMenu bridge={bridge} isTouchDevice={isTouchDevice} />
       {isTouchDevice && <TouchControls touchInput={touchInput} />}
       <RotateDevice />

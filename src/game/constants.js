@@ -31,6 +31,28 @@ export const PLAYER = {
   JUMP_BUFFER_TIME: 0.1,
 }
 
+// Ability movement: Ecto-Dash and Slime Boots (wall cling and wall jump).
+export const PLAYER_MOVES = {
+  // A dash covers DASH_SPEED · DASH_TIME ≈ 70 px (4.4 tiles), ignoring gravity.
+  DASH_SPEED: 410,
+  DASH_TIME: 0.17,
+  DASH_COOLDOWN: 0.3,
+  // Speed kept when a dash ends.
+  DASH_EXIT_SPEED: 135,
+  // A dash that ends inside an ectoplasm barrier keeps going until it's clear,
+  // but never longer than this in total.
+  DASH_MAX_TIME: 0.4,
+
+  // Clinging to a slimed wall caps the fall speed.
+  WALL_SLIDE_SPEED: 45,
+  WALL_JUMP_VELOCITY: 380,
+  WALL_JUMP_PUSH: 170,
+  // After a wall jump, horizontal input is ignored this long so the kick lands.
+  WALL_JUMP_LOCK: 0.13,
+  // A wall jump still works this long after letting go of the wall.
+  WALL_COYOTE_TIME: 0.08,
+}
+
 export const PLAYER_FEEL = {
   JUMP_STRETCH_X: 0.8,
   JUMP_STRETCH_Y: 1.2,
@@ -80,13 +102,18 @@ export const HAPTICS = {
 export const DEPTH = {
   BACKDROP: -10,
   POLE: -1,
+  SHOP: -1,
   ROOM: 0,
+  GATES: 1,
+  RELIC: 7,
   TRAP_BEAM: 4,
   TRAP: 5,
   ORB: 6,
   PLAYER: 10,
   GHOST_TRAIL: 14,
   GHOST: 15,
+  BOSS: 16,
+  PROJECTILE: 17,
   STREAM: 20,
 }
 
@@ -109,6 +136,7 @@ export const PLAYER_COMBAT = {
 export const HIT_STOP = {
   PLAYER_HIT: 0.06,
   CAPTURE: 0.08,
+  BOSS_CAPTURE: 0.14,
 }
 
 export const SCREEN_SHAKE = {
@@ -116,6 +144,12 @@ export const SCREEN_SHAKE = {
   PLAYER_HIT_INTENSITY: 0.008,
   CAPTURE_TIME: 0.15,
   CAPTURE_INTENSITY: 0.006,
+  STOMP_TIME: 0.25,
+  STOMP_INTENSITY: 0.012,
+  CRUMBLE_TIME: 0.12,
+  CRUMBLE_INTENSITY: 0.005,
+  BOSS_DEFEAT_TIME: 0.6,
+  BOSS_DEFEAT_INTENSITY: 0.01,
 }
 
 export const PROTON_STREAM = {
@@ -204,6 +238,175 @@ export const GHOST = {
   CAPTURE_END_SCALE: 0.15,
 }
 
+// Slimer: flees through the hotel, then fights like a tougher, faster ghost
+// when cornered. Shares the ghost rules (systems/ghostState.js, ghostSteering.js).
+export const SLIMER = {
+  ...GHOST,
+  MAX_HP: 180,
+  WEAKEN_FRACTION: 0.3,
+  RECOVER_DELAY: 1.5,
+  RECOVER_RATE: 35,
+  BODY_RADIUS: 10,
+  HOVER_SPEED: 45,
+  CHASE_SPEED: 72,
+  AGGRO_RANGE: 220,
+  LEASH_RANGE: 420,
+  WANDER_RADIUS: 70,
+  STRUGGLE_SPEED: 48,
+  GLOW_SCALE: 2,
+  // The chase: he flees to his next waypoint when the player comes within
+  // FLEE_RANGE, at FLEE_SPEED, and counts as arrived within ARRIVE_DISTANCE.
+  FLEE_RANGE: 100,
+  FLEE_SPEED: 125,
+  ARRIVE_DISTANCE: 3,
+}
+
+// The Librarian, mini-boss of the Archive Vault. HP and recovery work like a
+// ghost's (systems/ghostState.js); her attacks are in systems/librarianBrain.js.
+export const LIBRARIAN = {
+  MAX_HP: 300,
+  WEAKEN_FRACTION: 0.25,
+  RECOVER_DELAY: 2.5,
+  RECOVER_RATE: 45,
+  BODY_RADIUS: 12,
+  CONTACT_DAMAGE: 1,
+  WAKE_TIME: 1.4,
+  DRIFT_TIME: 1.6,
+  DRIFT_SPEED: 70,
+  STEER_RATE: 3,
+  // After recovering from a stun she is angry: faster, shorter pauses.
+  ANGRY_MULTIPLIER: 1.35,
+  VOLLEY_BOOKS: 3,
+  VOLLEY_INTERVAL: 0.3,
+  BOOK_SPEED: 140,
+  SWOOP_WINDUP: 0.6,
+  SWOOP_SPEED: 230,
+  SWOOP_TIME: 0.75,
+  // Held by the stream she drifts at this fraction of her speed.
+  TETHERED_SPEED_MULTIPLIER: 0.5,
+  // Stunned (weakened) she sinks toward the floor.
+  STUN_SINK_SPEED: 22,
+  MIN_HOVER_HEIGHT: 20,
+  GLOW_SCALE: 2.4,
+  GLOW_ALPHA: 0.35,
+  BOB_AMPLITUDE: 2,
+  BOB_SPEED: 2.4,
+  WINDUP_JITTER: 1,
+  STUN_FLICKER_RATE: 8,
+  STUN_FLICKER_ALPHA: 0.55,
+  CAPTURE_END_SCALE: 0.15,
+}
+
+// The marshmallow mascot, final boss. Three rounds of weaken-and-trap; each
+// trap tears a chunk of spirit out of him and he comes back angrier.
+export const MALLOW = {
+  MAX_HP: 260,
+  WEAKEN_FRACTION: 0.3,
+  RECOVER_DELAY: 2.2,
+  RECOVER_RATE: 50,
+  PHASES: 3,
+  CONTACT_DAMAGE: 1,
+  // Contact box around his feet position.
+  BODY_WIDTH: 30,
+  BODY_HEIGHT: 50,
+  // Where the stream and trap aim (his head), above his feet.
+  CORE_HEIGHT: 40,
+  KNEEL_CORE_HEIGHT: 22,
+  WAKE_TIME: 1.8,
+  WALK_SPEED: 30,
+  WALK_TIME: 1.8,
+  // Each phase after the first is this much faster.
+  PHASE_SPEED_STEP: 0.25,
+  STOMP_WINDUP: 0.5,
+  STOMP_JUMP_VELOCITY: 360,
+  STOMP_GRAVITY: 900,
+  STOMP_MAX_SPEED_X: 120,
+  STOMP_RECOVER_TIME: 0.6,
+  THROW_COUNT: 3,
+  THROW_INTERVAL: 0.4,
+  // Globs are lobbed so they land near the player after this long.
+  THROW_FLIGHT_TIME: 0.9,
+  ROAR_TIME: 1.4,
+  // Squash while crouching or landing, and kneeling height when weakened.
+  CROUCH_SCALE_Y: 0.85,
+  KNEEL_SCALE_Y: 0.72,
+  WALK_BOB_AMPLITUDE: 2,
+  WALK_BOB_SPEED: 7,
+  GLOW_SCALE: 3.4,
+  GLOW_ALPHA: 0.22,
+  CAPTURE_SHRINK: 0.12,
+  DEFEAT_TIME: 1.6,
+  DEFEAT_PUFFS: 40,
+}
+
+export const PROJECTILE = {
+  DAMAGE: 1,
+  BOOK_RADIUS: 4,
+  BOOK_LIFETIME: 3,
+  GLOB_SIZE: 7,
+  GLOB_RADIUS: 4,
+  GLOB_GRAVITY: 600,
+  GLOB_LIFETIME: 4,
+  // Shockwaves run along the floor from a stomp.
+  SHOCKWAVE_SPEED: 150,
+  SHOCKWAVE_RADIUS: 6,
+  SHOCKWAVE_HEIGHT: 6,
+  SHOCKWAVE_LIFETIME: 2.4,
+  GLOW_SCALE: 0.7,
+  GLOW_ALPHA: 0.5,
+}
+
+// A boss fight: the room's exits are sealed while it lasts.
+export const BOSS_FIGHT = {
+  SEAL_ALPHA: 0.55,
+  SEAL_FLICKER_SPEED: 9,
+  // The boss bar's health is published in steps of 1 / BAR_STEPS.
+  BAR_STEPS: 50,
+}
+
+// Ability relics and shop goods.
+export const RELIC = {
+  BOB_AMPLITUDE: 3,
+  BOB_SPEED: 2.5,
+  PICKUP_RADIUS: 14,
+  // It hangs in the air this long before it can be picked up, so it's seen.
+  PICKUP_DELAY: 0.8,
+  GLOW_SCALE: 1.8,
+  GLOW_ALPHA: 0.6,
+  // Height above the floor it floats at.
+  HOVER_HEIGHT: 18,
+}
+
+export const SHOP = {
+  // The player can buy within this many px of the desk spot, horizontally.
+  REACH: 18,
+  BOOTS_PRICE: 12,
+  BATTERY_CELL_PRICE: 20,
+  // Goods float above the desk at this height (px above the floor).
+  DISPLAY_HEIGHT: 40,
+  GLOW_ALPHA: 0.35,
+  GLOW_SCALE: 1.5,
+  FLASH_TIME: 0.12,
+}
+
+// Visuals of gates.
+export const GATES = {
+  SPECTRAL_ALPHA: 0.16,
+  SPECTRAL_FLICKER_SPEED: 3,
+  SPECTRAL_FLICKER_AMOUNT: 0.4,
+  BARRIER_GLOW_ALPHA: 0.25,
+  BARRIER_PULSE_SPEED: 3,
+  BARRIER_PULSE_AMOUNT: 0.3,
+  CRACK_ALPHA: 0.9,
+  CRUMBLE_PARTICLES: 10,
+  CRUMBLE_SPEED: 60,
+  CRUMBLE_LIFETIME: 0.5,
+  // Afterimages while dashing.
+  DASH_TRAIL_INTERVAL: 0.03,
+  DASH_TRAIL_LIFETIME: 0.18,
+  DASH_TRAIL_ALPHA: 0.45,
+}
+
 export const TRAP = {
   THROW_SPEED_Y: 230,
   // Horizontal throw speed when there is no tethered ghost to aim at.
@@ -269,6 +472,10 @@ export const HUD = {
   DIGIT_SCALE: 2,
   // Pip shake when the player is hit.
   HIT_FLASH_TIME: 0.25,
+  // Row of owned-ability relics under the essence counter.
+  ABILITY_ROW_GAP: 14,
+  ABILITY_SPACING: 13,
+  ABILITY_SCALE: 0.75,
 }
 
 // Walking from one room into the next.

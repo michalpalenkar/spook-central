@@ -1,18 +1,23 @@
 // The save file, as stored in localStorage (JSON):
-//   { version, roomId, essence, maxHp, visited: [roomId], abilities: [id], savedAt }
-// `roomId` is the room of the fire pole the player last rested at.
+//   { version, roomId, essence, maxHp, visited: [roomId], abilities: [id],
+//     flags: [id], savedAt }
+// `roomId` is the room of the fire pole the player last rested at. `flags`
+// record one-off events: bosses beaten, shop goods bought
+// (systems/abilities.js FLAG).
 //
 // Bump SAVE_VERSION whenever the shape changes, and add a migration from the
 // previous version to MIGRATIONS so older saves keep loading.
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 /**
  * Migrations keyed by the version they upgrade *from*. Each takes a save of
- * that version and returns one of the next version. Version 1 is the first
- * format, so there are none yet.
+ * that version and returns one of the next version.
  */
-export const MIGRATIONS = {}
+export const MIGRATIONS = {
+  // v2 adds `flags`. Nothing in v1 could set one, so it starts empty.
+  1: (save) => ({ ...save, version: 2, flags: [] }),
+}
 
 /**
  * Upgrades a save to `targetVersion` one step at a time. Returns null when a
@@ -51,7 +56,7 @@ export function validateSave(data, world, migrations = MIGRATIONS) {
   const roomId = world.roomIds.has(save.roomId) ? save.roomId : world.startRoom
   const visited = Array.isArray(save.visited) ? save.visited.filter((id) => world.roomIds.has(id)) : []
   if (!visited.includes(roomId)) visited.push(roomId)
-  const abilities = Array.isArray(save.abilities) ? save.abilities.filter((a) => typeof a === 'string') : []
+  const strings = (list) => (Array.isArray(list) ? [...new Set(list.filter((a) => typeof a === 'string'))] : [])
 
   return {
     version: SAVE_VERSION,
@@ -59,13 +64,14 @@ export function validateSave(data, world, migrations = MIGRATIONS) {
     essence: toCount(save.essence, 0),
     maxHp: toCount(save.maxHp, world.defaultMaxHp) || world.defaultMaxHp,
     visited: [...new Set(visited)],
-    abilities: [...new Set(abilities)],
+    abilities: strings(save.abilities),
+    flags: strings(save.flags),
     savedAt: toCount(save.savedAt, 0),
   }
 }
 
 /** Builds a save of the current version. */
-export function createSave({ roomId, essence, maxHp, visited, abilities = [], savedAt }) {
+export function createSave({ roomId, essence, maxHp, visited, abilities = [], flags = [], savedAt }) {
   return {
     version: SAVE_VERSION,
     roomId,
@@ -73,6 +79,7 @@ export function createSave({ roomId, essence, maxHp, visited, abilities = [], sa
     maxHp,
     visited: [...visited],
     abilities: [...abilities],
+    flags: [...flags],
     savedAt,
   }
 }

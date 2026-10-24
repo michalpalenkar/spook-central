@@ -1,16 +1,23 @@
 // In-world hints. A room lists hint zones as entities:
-//   { type: 'hint', id, x, y, width, height }   (tiles)
+//   { type: 'hint', id, x, y, width, height, requires? }   (tiles)
+// A zone with `requires` (an ability id) only shows once the player has it.
 // While the player stands inside one, the overlay shows that hint's text
 // (worded for the player's input device; see ui/Menus.jsx).
 
 export const SAVE_HINT = 'save'
 
 /** The id of the first hint zone containing the point (room pixels), or null. */
-export function hintAt(entities, x, y, tileSize) {
+export function hintAt(entities, x, y, tileSize, abilities = new Set()) {
   const tx = x / tileSize
   const ty = y / tileSize
   const zone = entities.find(
-    (e) => e.type === 'hint' && tx >= e.x && tx < e.x + e.width && ty >= e.y && ty < e.y + e.height,
+    (e) =>
+      e.type === 'hint' &&
+      (!e.requires || abilities.has(e.requires)) &&
+      tx >= e.x &&
+      tx < e.x + e.width &&
+      ty >= e.y &&
+      ty < e.y + e.height,
   )
   return zone?.id ?? null
 }

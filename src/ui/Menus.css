@@ -91,6 +91,12 @@
 .map-area-library .map-room-open {
   fill: rgba(130, 190, 180, 0.32);
 }
+.map-area-hotel .map-room-open {
+  fill: rgba(200, 120, 120, 0.32);
+}
+.map-area-rooftop .map-room-open {
+  fill: rgba(160, 145, 215, 0.34);
+}
 .is-current .map-room-bounds {
   stroke: var(--map-ecto);
   stroke-width: 0.6;

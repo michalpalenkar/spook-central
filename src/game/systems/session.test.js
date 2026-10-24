@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { SAVE_VERSION } from './saveFormat.js'
 import {
   ENTRY,
+  brokenIn,
+  checkpointSave,
+  markBroken,
   isCaptured,
   markCaptured,
   newSession,
@@ -68,6 +71,7 @@ describe('session', () => {
       maxHp: 5,
       visited: ['garage', 'steps'],
       abilities: [],
+      flags: [],
       savedAt: 1234,
     })
   })
@@ -95,4 +99,47 @@ describe('session', () => {
     expect(s).toMatchObject({ roomId: 'garage', entry: { type: ENTRY.SPAWN } })
     expect(s.wallet.essence).toBe(0)
   })
+
+  it('continues flags from a save, and starts a new game without any', () => {
+    const s = sessionFromSave({ version: SAVE_VERSION, roomId: 'garage', essence: 0, maxHp: 5, visited: [], abilities: [], flags: ['librarian-defeated'] })
+    expect(s.flags.has('librarian-defeated')).toBe(true)
+    expect(newSession(WORLD).flags.size).toBe(0)
+    expect(newSession(WORLD).chase).toEqual({ stage: 0 })
+  })
+
+  it('writes a checkpoint at the last pole with the essence held there', () => {
+    const s = newSession(WORLD)
+    s.wallet.essence = 7
+    restAtPole(s, 'garage', 1)
+    s.wallet.essence = 19
+    s.abilities.add('pke-meter')
+    s.flags.add('librarian-defeated')
+    travel(s, 'vault', { x: 0, y: 0, vx: 0, vy: 0 }, 3)
+    expect(checkpointSave(s, 50)).toMatchObject({
+      roomId: 'garage',
+      essence: 7,
+      abilities: ['pke-meter'],
+      flags: ['librarian-defeated'],
+      savedAt: 50,
+    })
+  })
+
+  it('remembers broken weak floors per room, through death', () => {
+    const s = newSession(WORLD)
+    markBroken(s, 'ballroom', [{ x: 10, y: 15 }, { x: 11, y: 15 }])
+    markBroken(s, 'kitchen', [{ x: 1, y: 2 }])
+    respawnAtSave(s)
+    expect([...brokenIn(s, 'ballroom')].sort()).toEqual(['10,15', '11,15'])
+    expect([...brokenIn(s, 'lobby')]).toEqual([])
+  })
+
+  it('keeps abilities and flags after death', () => {
+    const s = newSession(WORLD)
+    s.abilities.add('ecto-dash')
+    s.flags.add('slimer-captured')
+    respawnAtSave(s)
+    expect(s.abilities.has('ecto-dash')).toBe(true)
+    expect(s.flags.has('slimer-captured')).toBe(true)
+  })
 })
+

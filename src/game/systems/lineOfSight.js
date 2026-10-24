@@ -1,11 +1,11 @@
 import { TILE_SIZE } from '../constants.js'
-import { TILE } from '../levels/parseRoom.js'
+import { isWallTile } from '../levels/parseRoom.js'
 
 export function isSolidAt(tiles, x, y, tileSize = TILE_SIZE) {
   const row = tiles[Math.floor(y / tileSize)]
   if (!row) return true
   const tile = row[Math.floor(x / tileSize)]
-  return tile === undefined || tile === TILE.SOLID
+  return tile === undefined || isWallTile(tile)
 }
 
 /**
@@ -37,7 +37,7 @@ export function groundBelow(tiles, x, y, tileSize = TILE_SIZE) {
   if (isSolidAt(tiles, x, y, tileSize)) return null
   const column = Math.floor(x / tileSize)
   for (let row = Math.floor(y / tileSize) + 1; row < tiles.length; row++) {
-    if (tiles[row][column] === TILE.SOLID) return row * tileSize
+    if (isWallTile(tiles[row][column])) return row * tileSize
   }
   return null
 }

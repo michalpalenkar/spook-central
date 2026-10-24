@@ -1,4 +1,4 @@
-import { hintText } from './hintText.js'
+import { hintId, hintText } from './hintText.js'
 import { useGameBridge } from './useGameBridge.js'
 import './WorldMessages.css'
 
@@ -26,7 +26,7 @@ export function WorldMessages({ bridge, isTouchDevice }) {
         </div>
       )}
       {text && (
-        <div key={hint} className="world-hint">
+        <div key={hintId(hint)} className="world-hint">
           {text}
         </div>
       )}

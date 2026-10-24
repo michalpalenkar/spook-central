@@ -5,14 +5,15 @@
  * through the registry. State is replaced, never mutated, so React sees
  * every change.
  *
- * State: { mapOpen, map (from buildMapView), hint (id or null), toast
- * ({ id, text } or null), banner (area name, same shape), area (current
- * area id) }. Toasts and banners have separate slots so an area name never
- * hides a message.
+ * State: { mapOpen, map (from buildMapView), hint (id, { id, vars } or
+ * null), toast ({ id, text } or null), banner (area name, same shape), area
+ * (current area id), boss ({ name, health 0..1, phase, phases } during a
+ * boss fight, else null) }. Toasts and banners have separate slots so an
+ * area name never hides a message.
  */
 export class GameBridge {
   constructor() {
-    this.state = { mapOpen: false, map: null, hint: null, toast: null, banner: null, area: null }
+    this.state = { mapOpen: false, map: null, hint: null, toast: null, banner: null, area: null, boss: null }
     this.listeners = new Set()
     this.messageCount = 0
     this.subscribe = this.subscribe.bind(this)

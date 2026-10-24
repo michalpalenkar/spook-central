@@ -14,6 +14,10 @@ export const OPPOSITE_EDGE = { left: 'right', right: 'left', top: 'bottom', bott
 
 const isVertical = (edge) => edge === 'left' || edge === 'right'
 
+// Border tiles that close a room. Gates (spectral walls, weak floors) may sit
+// on an exit: they open once the player has the ability.
+const isClosed = (tile) => tile === TILE.SOLID || tile === TILE.SLIME
+
 /** Length of an edge in tiles. */
 function edgeLength(room, edge) {
   return isVertical(edge) ? room.height : room.width
@@ -166,7 +170,7 @@ export function validateWorld(rooms) {
       }
       for (let t = first; t <= last; t++) {
         covered[exit.edge].add(t)
-        if (borderTile(room, exit.edge, t) === TILE.SOLID) problems.push(`${label}: tile ${t} is solid`)
+        if (isClosed(borderTile(room, exit.edge, t))) problems.push(`${label}: tile ${t} is solid`)
       }
 
       const target = byId.get(exit.to)
@@ -192,7 +196,7 @@ export function validateWorld(rooms) {
 
     for (const edge of EDGES) {
       for (let t = 0; t < edgeLength(room, edge); t++) {
-        if (borderTile(room, edge, t) !== TILE.SOLID && !covered[edge].has(t)) {
+        if (!isClosed(borderTile(room, edge, t)) && !covered[edge].has(t)) {
           problems.push(`room "${room.id}": opening on ${edge} edge at ${t} has no exit`)
         }
       }

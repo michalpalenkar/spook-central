@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { validateWorld } from './exits.js'
 import { TILE } from './parseRoom.js'
 import { AREAS, ROOMS, START_ROOM, WORLD_INFO, getRoom } from './world.js'
+import { SLIMER_CHASE } from './hotel.js'
+import { isWallTile } from './parseRoom.js'
+import { ABILITY_IDS } from '../systems/abilities.js'
+import { BOSSES } from '../systems/bosses.js'
 import { HINT_IDS } from '../../ui/hintText.js'
 
 describe('world data', () => {
@@ -74,4 +78,58 @@ describe('world data', () => {
     expect(WORLD_INFO.roomIds.size).toBe(ROOMS.length)
     expect(WORLD_INFO.roomIds.has('test-room')).toBe(false)
   })
+
+  it('has the four areas of the slice', () => {
+    expect(Object.keys(AREAS).sort()).toEqual(['firehouse', 'hotel', 'library', 'rooftop'])
+  })
+
+  it('stands every fire pole and the shop desk on the floor', () => {
+    for (const room of ROOMS) {
+      for (const e of room.entities.filter((e) => e.type === 'pole' || e.type === 'shop')) {
+        expect(room.tiles[e.y][e.x], `${room.id} ${e.id}`).toBe(TILE.EMPTY)
+        expect(isWallTile(room.tiles[e.y + 1][e.x]), `${room.id} ${e.id}`).toBe(true)
+      }
+    }
+  })
+
+  it('has a fire pole in every area', () => {
+    for (const area of Object.keys(AREAS)) {
+      expect(ROOMS.some((room) => room.area === area && room.entities.some((e) => e.type === 'pole'))).toBe(true)
+    }
+  })
+
+  it('places known bosses in open air, with drift anchors in the room for the Librarian', () => {
+    const bosses = ROOMS.flatMap((room) => room.entities.filter((e) => e.type === 'boss').map((b) => ({ b, room })))
+    expect(bosses.map(({ b }) => b.id).sort()).toEqual(['librarian', 'mallow'])
+    for (const { b, room } of bosses) {
+      expect(BOSSES[b.id]).toBeDefined()
+      expect(room.tiles[b.y][b.x]).toBe(TILE.EMPTY)
+      expect(b.triggerX).toBeGreaterThan(0)
+      for (const a of b.anchors ?? []) expect(room.tiles[a.y][a.x]).toBe(TILE.EMPTY)
+    }
+  })
+
+  it('runs Slimer’s chase through hotel rooms, ending cornered', () => {
+    const stages = SLIMER_CHASE
+    expect(stages.at(-1).home).toBeDefined()
+    for (const stage of stages) {
+      const room = getRoom(stage.roomId)
+      expect(room.area).toBe('hotel')
+      // He waits inside the room at every waypoint but the last.
+      for (const p of (stage.waypoints ?? []).slice(0, -1)) expect(room.tiles[p.y]?.[p.x]).toBeDefined()
+    }
+    for (const stage of stages.slice(0, -1)) {
+      // Every stage but the last ends outside its room.
+      const room = getRoom(stage.roomId)
+      const last = stage.waypoints.at(-1)
+      expect(last.x < 0 || last.y < 0 || last.x >= room.width || last.y >= room.height).toBe(true)
+    }
+  })
+
+  it('only gates hints on known abilities', () => {
+    for (const room of ROOMS) {
+      for (const hint of room.entities.filter((e) => e.type === 'hint' && e.requires)) expect(ABILITY_IDS).toContain(hint.requires)
+    }
+  })
 })
+

@@ -3,7 +3,7 @@ import { SAVE_VERSION } from './saveFormat.js'
 import { SAVE_KEY, clearSave, loadSave, writeSave } from './saveStorage.js'
 
 const WORLD = { roomIds: new Set(['hub']), startRoom: 'hub', defaultMaxHp: 5 }
-const SAVE = { version: SAVE_VERSION, roomId: 'hub', essence: 2, maxHp: 5, visited: ['hub'], abilities: [], savedAt: 1 }
+const SAVE = { version: SAVE_VERSION, roomId: 'hub', essence: 2, maxHp: 5, visited: ['hub'], abilities: [], flags: [], savedAt: 1 }
 
 function memoryStorage(initial = {}) {
   const data = new Map(Object.entries(initial))

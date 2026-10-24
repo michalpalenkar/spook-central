@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EDGE, EMPTY_INDEX, PLATFORM_FRAME, edgeMask, toTileIndices } from './autotile.js'
+import { BARRIER_FRAME, EDGE, EMPTY_INDEX, PLATFORM_FRAME, SLIME_FRAME_START, edgeMask, isSlimeFrame, toTileIndices } from './autotile.js'
 import { parseRoom } from './parseRoom.js'
 
 const tilesOf = (grid) => parseRoom({ id: 't', grid }).tiles
@@ -33,3 +33,24 @@ describe('toTileIndices', () => {
     ])
   })
 })
+
+describe('gate tiles', () => {
+  it('draw spectral walls and weak floors as brick, joined with their neighbours', () => {
+    const indices = toTileIndices(tilesOf(['P..', '#HB']))
+    expect(indices[1]).toEqual([EDGE.TOP, EDGE.TOP, EDGE.TOP])
+  })
+
+  it('draw slimed walls from their own frames, with the same edge masks', () => {
+    const indices = toTileIndices(tilesOf(['P.', '#S']))
+    expect(indices[1][1]).toBe(SLIME_FRAME_START + EDGE.TOP)
+    expect(isSlimeFrame(indices[1][1])).toBe(true)
+    expect(isSlimeFrame(indices[1][0])).toBe(false)
+  })
+
+  it('draw barriers as one frame that leaves walls next to them exposed', () => {
+    const tiles = tilesOf(['P#E'])
+    expect(toTileIndices(tiles)[0][2]).toBe(BARRIER_FRAME)
+    expect(edgeMask(tiles, 1, 0) & EDGE.RIGHT).toBe(EDGE.RIGHT)
+  })
+})
+

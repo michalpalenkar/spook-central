@@ -91,7 +91,7 @@ function cellColors(charge) {
  * each as a named frame. `colorOverrides` swaps the palette per frame and
  * `extraFrames` adds frames that reuse other rows.
  */
-function generateFramedTexture(scene, key, frames, colors, width, height, colorOverrides = {}, extraFrames = {}) {
+export function generateFramedTexture(scene, key, frames, colors, width, height, colorOverrides = {}, extraFrames = {}) {
   const all = { ...frames, ...extraFrames }
   const names = Object.keys(all)
   const texture = scene.textures.createCanvas(key, width * names.length, height)
@@ -118,7 +118,7 @@ function generateGlow(scene) {
 }
 
 // A small pixel disc: bright core, coloured rim.
-function generateDisc(scene, key, size, core, rim) {
+export function generateDisc(scene, key, size, core, rim) {
   const texture = scene.textures.createCanvas(key, size, size)
   const ctx = texture.context
   const c = (size - 1) / 2

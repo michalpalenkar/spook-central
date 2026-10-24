@@ -1,4 +1,4 @@
-import { TILE } from '../levels/parseRoom.js'
+import { isWallTile } from '../levels/parseRoom.js'
 import { worldSpan } from '../levels/exits.js'
 
 // The area map fills itself in: a room shows up once the player has been in
@@ -17,12 +17,12 @@ export function openRects(tiles) {
     const current = new Map()
     let x = 0
     while (x < row.length) {
-      if (row[x] === TILE.SOLID) {
+      if (isWallTile(row[x])) {
         x++
         continue
       }
       const start = x
-      while (x < row.length && row[x] !== TILE.SOLID) x++
+      while (x < row.length && !isWallTile(row[x])) x++
       const key = `${start}:${x - start}`
       const above = previous.get(key)
       if (above) {

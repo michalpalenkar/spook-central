@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TILE, parseRoom } from './parseRoom.js'
+import { TILE, isWallTile, parseRoom } from './parseRoom.js'
 import { TEST_ROOM } from './testRoom.js'
 
 describe('parseRoom', () => {
@@ -11,6 +11,16 @@ describe('parseRoom', () => {
     expect(room.tiles[1]).toEqual([TILE.SOLID, TILE.EMPTY, TILE.PLATFORM])
     expect(room.entities).toEqual([])
     expect(room.exits).toEqual([])
+  })
+
+  it('parses gate tiles: spectral walls, weak floors, barriers and slime', () => {
+    const room = parseRoom({ id: 'r', grid: ['HBES'] })
+    expect(room.tiles[0]).toEqual([TILE.SPECTRAL, TILE.WEAK_FLOOR, TILE.BARRIER, TILE.SLIME])
+  })
+
+  it('counts every kind of masonry as wall, but not barriers or platforms', () => {
+    for (const tile of [TILE.SOLID, TILE.SPECTRAL, TILE.WEAK_FLOOR, TILE.SLIME]) expect(isWallTile(tile)).toBe(true)
+    for (const tile of [TILE.EMPTY, TILE.PLATFORM, TILE.BARRIER]) expect(isWallTile(tile)).toBe(false)
   })
 
   it('rejects ragged rows', () => {

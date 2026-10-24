@@ -10,6 +10,7 @@ const valid = (overrides = {}) => ({
   maxHp: 5,
   visited: ['hub', 'library'],
   abilities: [],
+  flags: [],
   savedAt: 1000,
   ...overrides,
 })
@@ -17,7 +18,7 @@ const valid = (overrides = {}) => ({
 describe('createSave', () => {
   it('builds a current-version save from sets or arrays', () => {
     const save = createSave({ roomId: 'hub', essence: 3, maxHp: 5, visited: new Set(['hub']), savedAt: 7 })
-    expect(save).toEqual({ version: SAVE_VERSION, roomId: 'hub', essence: 3, maxHp: 5, visited: ['hub'], abilities: [], savedAt: 7 })
+    expect(save).toEqual({ version: SAVE_VERSION, roomId: 'hub', essence: 3, maxHp: 5, visited: ['hub'], abilities: [], flags: [], savedAt: 7 })
   })
 
   it('round-trips through JSON and validation unchanged', () => {
@@ -84,3 +85,18 @@ describe('migrateSave', () => {
     expect(migrateSave({ version: 1 }, { 1: () => null }, 3)).toBeNull()
   })
 })
+
+describe('save version 2', () => {
+  it('migrates a version 1 save by adding empty flags', () => {
+    const v1 = { version: 1, roomId: 'library', essence: 4, maxHp: 5, visited: ['hub', 'library'], abilities: [], savedAt: 9 }
+    expect(validateSave(v1, WORLD)).toEqual({ ...v1, version: 2, flags: [] })
+  })
+
+  it('keeps abilities and flags as unique strings', () => {
+    const save = validateSave(valid({ abilities: ['pke-meter', 3, 'pke-meter'], flags: ['librarian-defeated', null] }), WORLD)
+    expect(save.abilities).toEqual(['pke-meter'])
+    expect(save.flags).toEqual(['librarian-defeated'])
+    expect(validateSave(valid({ flags: 'nope' }), WORLD).flags).toEqual([])
+  })
+})
+

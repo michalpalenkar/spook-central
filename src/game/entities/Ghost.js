@@ -7,6 +7,7 @@ import {
   GHOST_STATUS,
   canBeCaptured,
   createGhostState,
+  damageGhost,
   dealsContactDamage,
   isWeakened,
   resetGhostState,
@@ -14,6 +15,18 @@ import {
 } from '../systems/ghostState.js'
 import { createSteering, startRecoil, stepSteering } from '../systems/ghostSteering.js'
 import { groundBelow } from '../systems/lineOfSight.js'
+import { circleIntersectsRect } from '../systems/overlap.js'
+
+/** How an ordinary ghost looks and behaves. Slimer's cornered fight passes his own. */
+export const GHOST_LOOK = {
+  kind: 'ghost',
+  tuning: GHOST,
+  texture: COMBAT_TEXTURES.GHOST,
+  frame: 'sway0',
+  anim: GHOST_ANIMS.FLOAT,
+  glow: PALETTE.ghost.glow,
+  weakenedTint: PALETTE.ghost.weakened,
+}
 
 /**
  * A free-floating ghost. It flies through walls, chases the player, can be
@@ -22,9 +35,12 @@ import { groundBelow } from '../systems/lineOfSight.js'
  * moves the sprites.
  */
 export class Ghost {
-  constructor(scene, { id, x, y }, room) {
+  constructor(scene, { id, x, y }, room, look = GHOST_LOOK) {
     this.scene = scene
     this.id = id
+    this.kind = look.kind
+    this.tuning = look.tuning
+    this.look = look
     this.tiles = room.tiles
     this.bounds = { width: room.width * TILE_SIZE, height: room.height * TILE_SIZE }
     this.homeX = (x + 0.5) * TILE_SIZE
@@ -33,12 +49,12 @@ export class Ghost {
     this.glow = scene.add
       .image(0, 0, COMBAT_TEXTURES.GLOW)
       .setBlendMode(Phaser.BlendModes.ADD)
-      .setTint(toColor(PALETTE.ghost.glow))
+      .setTint(toColor(look.glow))
       .setDepth(DEPTH.GHOST)
-    this.sprite = scene.add.sprite(0, 0, COMBAT_TEXTURES.GHOST, 'sway0').setDepth(DEPTH.GHOST)
-    this.sprite.play(GHOST_ANIMS.FLOAT)
-    this.trail = scene.add.particles(0, 0, COMBAT_TEXTURES.GHOST, {
-      frame: 'sway0',
+    this.sprite = scene.add.sprite(0, 0, look.texture, look.frame).setDepth(DEPTH.GHOST)
+    this.sprite.play(look.anim)
+    this.trail = scene.add.particles(0, 0, look.texture, {
+      frame: look.frame,
       lifespan: GHOST.TRAIL_LIFETIME * 1000,
       frequency: GHOST.TRAIL_INTERVAL * 1000,
       alpha: { start: GHOST.TRAIL_ALPHA, end: 0 },
@@ -47,12 +63,25 @@ export class Ghost {
     this.trail.setDepth(DEPTH.GHOST_TRAIL)
     this.trail.startFollow(this.sprite)
 
-    this.state = createGhostState()
+    this.state = createGhostState(this.tuning)
     this.reset()
   }
 
+  get radius() {
+    return this.tuning.BODY_RADIUS
+  }
+
+  /** Ghosts are always awake; 0..1 strength for a boss bar (cornered Slimer). */
+  get awake() {
+    return true
+  }
+
+  get healthFraction() {
+    return this.state.hp / this.tuning.MAX_HP
+  }
+
   reset() {
-    resetGhostState(this.state)
+    resetGhostState(this.state, this.tuning)
     this.steering = createSteering(Math.random() * Math.PI * 2)
     this.x = this.homeX
     this.y = this.homeY
@@ -69,15 +98,24 @@ export class Ghost {
   }
 
   get weakened() {
-    return isWeakened(this.state)
+    return isWeakened(this.state, this.tuning)
   }
 
   get capturable() {
-    return canBeCaptured(this.state)
+    return canBeCaptured(this.state, this.tuning)
   }
 
   get dealsContactDamage() {
-    return dealsContactDamage(this.state)
+    return dealsContactDamage(this.state, this.tuning)
+  }
+
+  /** Whether the ghost overlaps a rect (the player's body). */
+  touches(rect) {
+    return circleIntersectsRect(this.x, this.y, this.radius, rect)
+  }
+
+  takeStreamDamage(amount) {
+    damageGhost(this.state, amount, this.tuning)
   }
 
   /** Called when the ghost touches the player. */
@@ -88,7 +126,7 @@ export class Ghost {
   update(dt, player) {
     this.time += dt
     if (this.state.status === GHOST_STATUS.FREE) {
-      tickGhostState(this.state, dt)
+      tickGhostState(this.state, dt, this.tuning)
       stepSteering(
         this.steering,
         {
@@ -102,6 +140,7 @@ export class Ghost {
           weakened: this.weakened,
         },
         dt,
+        this.tuning,
       )
       this.x += this.steering.vx * dt
       this.y += this.steering.vy * dt
@@ -113,7 +152,7 @@ export class Ghost {
   // Ghosts pass through walls, but never sink into the floor beneath them
   // or leave the room.
   keepInRoom() {
-    const r = GHOST.BODY_RADIUS
+    const r = this.radius
     this.x = Phaser.Math.Clamp(this.x, r, this.bounds.width - r)
     this.y = Phaser.Math.Clamp(this.y, r, this.bounds.height - r)
     const floor = groundBelow(this.tiles, this.x, this.y)
@@ -134,7 +173,7 @@ export class Ghost {
     this.y = Phaser.Math.Linear(this.captureFrom.y, trapY, eased)
     const scale = Phaser.Math.Linear(1, GHOST.CAPTURE_END_SCALE, eased)
     this.sprite.setScale(scale, scale * (1 + eased))
-    this.glow.setScale(GHOST.GLOW_SCALE * scale)
+    this.glow.setScale(this.tuning.GLOW_SCALE * scale)
   }
 
   capture() {
@@ -142,6 +181,12 @@ export class Ghost {
     this.sprite.setVisible(false)
     this.glow.setVisible(false)
     this.trail.stop()
+  }
+
+  destroy() {
+    this.sprite.destroy()
+    this.glow.destroy()
+    this.trail.destroy()
   }
 
   render() {
@@ -158,12 +203,12 @@ export class Ghost {
 
     if (capturing) return
     const pulse = 1 + Math.sin(this.time * GHOST.GLOW_PULSE_SPEED) * GHOST.GLOW_PULSE_AMOUNT
-    this.glow.setScale(GHOST.GLOW_SCALE * pulse).setAlpha(GHOST.GLOW_ALPHA * pulse)
+    this.glow.setScale(this.tuning.GLOW_SCALE * pulse).setAlpha(GHOST.GLOW_ALPHA * pulse)
 
     if (this.weakened) {
       // Dazed: dimmer, and flickering to say "trap me now".
       const on = Math.floor(this.time * GHOST.WEAKENED_FLICKER_RATE) % 2 === 0
-      this.sprite.setTint(PALETTE.ghost.weakened).setAlpha(on ? 1 : GHOST.WEAKENED_FLICKER_ALPHA)
+      this.sprite.setTint(this.look.weakenedTint).setAlpha(on ? 1 : GHOST.WEAKENED_FLICKER_ALPHA)
     } else {
       this.sprite.clearTint().setAlpha(1)
     }

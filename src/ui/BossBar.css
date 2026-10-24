@@ -1,0 +1,92 @@
+.boss-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 4vh);
+  z-index: 14;
+  width: min(46vw, 420px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #e6e2d3;
+  text-align: center;
+  text-shadow: 0 1px 2px #05060c;
+  animation: boss-bar-in 0.6s ease-out;
+}
+
+.boss-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: clamp(12px, 1.7vw, 16px);
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+}
+
+/* One diamond per round; spent rounds go dark. */
+.boss-rounds {
+  display: inline-flex;
+  gap: 5px;
+}
+.boss-rounds i {
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: #ff7a3c;
+  box-shadow: 0 0 4px rgba(255, 122, 60, 0.7);
+}
+.boss-rounds i.is-done {
+  background: #2a2d3a;
+  box-shadow: none;
+}
+
+/* Thin ornamental frame: a hairline track between two diamond caps. */
+.boss-track {
+  position: relative;
+  height: 5px;
+  border: 1px solid rgba(200, 190, 160, 0.55);
+  background: rgba(8, 10, 18, 0.7);
+}
+.boss-track::before,
+.boss-track::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(200, 190, 160, 0.7);
+  background: #0a0c14;
+  transform: translateY(-50%) rotate(45deg);
+}
+.boss-track::before {
+  left: -6px;
+}
+.boss-track::after {
+  right: -6px;
+}
+
+.boss-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff5a2c, #ffb36a);
+  box-shadow: 0 0 6px rgba(255, 122, 60, 0.6);
+  transform-origin: left center;
+  transition: transform 0.15s linear;
+}
+
+@keyframes boss-bar-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* On touch screens it sits between the D-pad and the buttons, a little higher. */
+@media (pointer: coarse) {
+  .boss-bar {
+    width: min(34vw, 300px);
+    bottom: calc(env(safe-area-inset-bottom) + 10px);
+  }
+}

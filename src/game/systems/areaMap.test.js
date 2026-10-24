@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRoom } from '../levels/parseRoom.js'
+import { isWallTile, parseRoom } from '../levels/parseRoom.js'
 import { ROOMS, START_ROOM } from '../levels/world.js'
 import { buildMapView, openRects } from './areaMap.js'
 
@@ -16,7 +16,7 @@ describe('openRects', () => {
   it('covers exactly the open tiles of a real room', () => {
     for (const room of ROOMS) {
       const area = openRects(room.tiles).reduce((sum, r) => sum + r.width * r.height, 0)
-      const open = room.tiles.flat().filter((t) => t !== 1).length
+      const open = room.tiles.flat().filter((t) => !isWallTile(t)).length
       expect(area).toBe(open)
     }
   })
@@ -35,8 +35,8 @@ describe('buildMapView', () => {
     expect(view.rooms[0]).toMatchObject({ current: true, pole: { x: 20.5, y: 15 }, saved: true, x: 0, y: 0, width: 40, height: 17 })
     expect(view.bounds).toEqual({ x: 0, y: 0, width: 40, height: 17 })
     expect(view.player).toEqual({ x: 2, y: 3 })
-    // All three garage exits lead somewhere unexplored.
-    expect(view.doors).toHaveLength(3)
+    // All four garage exits (one behind the spectral wall) lead somewhere unexplored.
+    expect(view.doors).toHaveLength(4)
     expect(view.doors.every((d) => !d.explored)).toBe(true)
   })
 
