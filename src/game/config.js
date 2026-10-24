@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { GAME_HEIGHT, GAME_WIDTH } from './constants.js'
 import { PALETTE } from './art/palette.js'
 import { PreloadScene } from './scenes/PreloadScene.js'
+import { UIScene } from './scenes/UIScene.js'
 import { WorldScene } from './scenes/WorldScene.js'
 
 // The canvas renders at the fixed internal resolution and is upscaled with
@@ -32,6 +33,6 @@ export function createGameConfig(parent, { touchInput } = {}) {
     callbacks: {
       preBoot: (game) => game.registry.set('touchInput', touchInput),
     },
-    scene: [PreloadScene, WorldScene],
+    scene: [PreloadScene, WorldScene, UIScene],
   }
 }

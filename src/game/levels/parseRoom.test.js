@@ -28,9 +28,17 @@ describe('parseRoom', () => {
 
   it('parses the test room', () => {
     const room = parseRoom(TEST_ROOM)
-    expect(room.width).toBe(60)
+    expect(room.width).toBe(78)
     expect(room.height).toBe(20)
     // Spawn stands on solid ground.
     expect(room.tiles[room.spawn.y + 1][room.spawn.x]).toBe(TILE.SOLID)
+  })
+
+  it('places every test-room ghost in open air inside the room', () => {
+    const room = parseRoom(TEST_ROOM)
+    const ghosts = room.entities.filter((e) => e.type === 'ghost')
+    expect(ghosts.length).toBeGreaterThan(0)
+    expect(new Set(ghosts.map((g) => g.id)).size).toBe(ghosts.length)
+    for (const { x, y } of ghosts) expect(room.tiles[y][x]).toBe(TILE.EMPTY)
   })
 })

@@ -20,6 +20,52 @@ export const PALETTE = {
     plankShadow: '#1d1614',
   },
 
+  ghost: {
+    body: '#b9ffd0',
+    bodyShade: '#5fd49a',
+    rim: '#efffef',
+    eyes: '#08140f',
+    glow: '#7dff9a',
+    // Tint while weakened: a sickly, dimmer green.
+    weakened: 0x8fae9a,
+  },
+
+  stream: {
+    core: '#fff6e0',
+    inner: '#ffd06a',
+    outer: '#ff5a2c',
+    spark: '#ffe2a0',
+    // The stream glows ecto-green where it grips a tethered ghost.
+    grip: '#9dffb0',
+  },
+
+  trap: {
+    shell: '#262833',
+    shellHighlight: '#6a6f82',
+    stripe: '#d8b23a',
+    light: '#ff4a2a',
+    lightArmed: '#7dff6a',
+    beam: '#efffe0',
+    pedal: '#0e0f15',
+  },
+
+  essence: {
+    core: '#eaffde',
+    glow: '#7dff6a',
+  },
+
+  hud: {
+    frame: '#8a93ad',
+    frameShadow: '#05060c',
+    cellEmpty: '#141826',
+    cellFull: '#ff7a3c',
+    cellCore: '#ffe0a0',
+    cellFlash: '#ffffff',
+    digit: '#d9e0ee',
+  },
+
+  deathFlash: 0xffffff,
+
   // Keyed by the characters used in art/playerFrames.js.
   player: {
     o: '#0a0b12', // outline

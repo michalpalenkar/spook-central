@@ -1,5 +1,7 @@
 import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FEEL, TILE_SIZE } from '../constants.js'
 import { EDGE, PLATFORM_FRAME, SOLID_FRAME_COUNT } from '../levels/autotile.js'
+import { generateCombatTextures } from './combatTextures.js'
+import { drawPixelRows } from './drawPixelRows.js'
 import { PALETTE } from './palette.js'
 import { PLAYER_FRAME_HEIGHT, PLAYER_FRAME_WIDTH, PLAYER_FRAMES } from './playerFrames.js'
 
@@ -21,6 +23,7 @@ export function generateTextures(scene) {
   generateBackdrop(scene)
   generateTiles(scene)
   generatePlayer(scene)
+  generateCombatTextures(scene)
 }
 
 function generateBackdrop(scene) {
@@ -107,14 +110,4 @@ function generatePlayer(scene) {
   anim(PLAYER_ANIMS.RUN, ['run0', 'run1'], PLAYER_FEEL.RUN_ANIM_FPS)
   anim(PLAYER_ANIMS.JUMP, ['jump'])
   anim(PLAYER_ANIMS.FALL, ['fall'])
-}
-
-function drawPixelRows(ctx, rows, colors, ox, oy) {
-  rows.forEach((row, y) => {
-    ;[...row].forEach((char, x) => {
-      if (char === '.') return
-      ctx.fillStyle = colors[char]
-      ctx.fillRect(ox + x, oy + y, 1, 1)
-    })
-  })
 }

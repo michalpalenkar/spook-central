@@ -68,6 +68,38 @@
 - `pause` is only an action so far. Nothing listens for it until the pause menu (milestone 7). Turning to portrait doesn't pause the game either. It should once a pause state exists.
 - The overlay sits over the play area (the D-pad covers the bottom-left of the view at spawn). Fine for now. Revisit during the art pass, and maybe add an opacity setting.
 
-## Next: Milestone 3 — Combat
-- Proton stream (hold fire) with tether, a basic ghost enemy, trap throw and capture.
-- HP (proton-pack battery pips), damage with hit-stop and `vibrate()` on hit, death and respawn.
+## Milestone 3: Combat (done)
+
+**What's in:**
+- **Core loop: weaken, wrangle, trap.** Hold `fire` to shoot the proton stream. It locks onto the nearest ghost in range (150 px, ±35° cone ahead, line of sight through tiles) and tethers it. A tethered ghost stays held up to 190 px away, even behind the player, and the player turns to face it and runs at 45 % speed while firing. The stream wears the ghost down (55 HP/s of 100). At ≤35 % it is **weakened**: it dims and flickers, stops chasing and stops hurting on contact, slows down and sags toward the floor. Ghosts left alone for 2 s recover, so the player has to follow up.
+- **Ghost trap** (`trap`): thrown in an arc. While a ghost is tethered the throw is aimed to land beneath it. The trap lands, opens (light turns green) and catches the nearest weakened ghost inside a cone above it (90 px high). A light cone pulls the ghost in over 0.7 s, then a capture hit-stop and a small shake. An empty trap closes after 3 s. The trap returns to the player after closing, so there's one trap at a time.
+- **Ecto-essence:** a captured ghost bursts into 3 orbs that pop out, bounce on the floor and home in on the player within 48 px. Each orb is +1 essence. While hurt, every 3 essence collected also restores 1 HP.
+- **Ghost enemy** (`entities/Ghost.js`): a 20×22 pixel-art floater with a two-frame swaying tail, an additive ecto glow, a faint afterimage trail (particles) and a bob. It wanders around its home, chases the player inside 130 px (leashed to 200 px from home), and backs off after touching the player. It flies through walls but never sinks into the floor or leaves the room. It shivers while the stream hits it.
+- **Player HP and damage:** 5 HP. Ghost contact costs 1 HP with knockback, a 60 ms hit-stop (the physics world pauses), a light camera shake, `vibrate()` from `systems/haptics.js`, and 1 s of invulnerability (the sprite blinks).
+- **Death and respawn:** at 0 HP the player flashes white and freezes, the camera fades out, and after 1.2 s the room resets: the player is back at the spawn at full HP, every ghost (captured ones included) respawns, the trap is recalled and loose orbs vanish. Essence is kept. There's no save system yet, so this is the room spawn.
+- **HUD** (`scenes/UIScene.js`, its own scene so camera shake doesn't move it): proton-pack battery cells for HP (the lost cell flashes white) and an orb icon plus a 3×5 pixel-font counter for essence. The World scene publishes values through the game registry.
+- **Test room:** widened to 78 columns, with an open arena on the right (flat floor, two one-way platforms). Two ghosts are listed as room `entities`: one above the big block, one in the arena.
+- **Code layout:** rules live in plain, tested modules in `systems/`: `health` (HP, invulnerability), `ghostState` (weaken threshold, recovery, capture/contact rules), `ghostSteering` (wander/chase/struggle/recoil), `streamTargeting` + `lineOfSight` (acquire, tether, walls), `trapLogic` (throw aim, capture cone, state machine), `essence` (wallet, healing), `hitStop`, `deathSequence` and `overlap`. Entities (`Ghost`, `ProtonStream`, `Trap`, `EssenceOrb`) only move sprites. Art is pixel rows in `art/ghostFrames.js`, `trapFrames.js` and `hudGlyphs.js`, drawn by `art/combatTextures.js`. All tuning is in `constants.js` and colours in `palette.js`.
+
+**Verified:**
+- `pnpm lint`, `pnpm test` (134 tests; 66 new for combat logic, room data and pixel-art data) and `pnpm build` all pass.
+- In the dev server (built-in browser, loop stepped at a fixed 60 fps, input fed through an extra `InputState` source):
+  - Holding fire near the arena ghost tethers it at once and weakens it in ~70 frames (1.2 s).
+  - A trap thrown while tethered landed ~10 px from the ghost and started capturing it after 33 frames. The capture finished and 3 orbs dropped. Walking over them raised essence by 3, and the HUD matched.
+  - Standing near the block ghost: 5 contact hits, each with hit-stop (physics paused for 4 frames), 1 s invulnerability, knockback, `navigator.vibrate` called (stubbed), and the HUD updated. The 5th hit started the death sequence. After 70 frames the player respawned at the spawn with 5 HP, both ghosts reset to full and free, the trap was ready, the fade had cleared and essence was kept (7).
+  - Touch: one finger holding Fire plus a tap on Trap with a second finger threw the trap at the tethered ghost and captured it.
+- Screenshots at 1280×720 (stream tether, capture beam, death with the flashing cell) and 740×360 mobile landscape with the touch overlay: the HUD sits top-left, clear of the pause button. No console errors from the game.
+
+**Known issues / not verified:**
+- Game feel is only checked numerically and in screenshots, not by playing with real hands. Tuning (stream DPS, ghost speeds, trap timings, contact frequency) will likely need a pass once someone plays it.
+- Not verified on real hardware: haptics (stubbed in the test, and absent on iOS), and performance of additive glows and particles on a mid-range phone. There are only 2 ghosts, so it should be cheap, but it hasn't been measured.
+- Ghosts pass through walls by design. A ghost inside a wall can't be streamed (no line of sight) until it drifts out.
+- The trap's aim assumes flat ground at the player's feet. Thrown off a ledge or at a ghost over a pit, it lands short or long.
+- Ghosts and orbs freeze during the death sequence. Only the trail particles keep fading.
+- Room-reset-on-death respawns captured ghosts too, so essence can be farmed. This is fine until the save system (milestone 4) defines what persists.
+- After a page reload in dev, the console showed two `InvalidStateError: Cannot suspend/resume a closed AudioContext` rejections. They come from Phaser's sound manager in a game instance that was destroyed (React StrictMode mounts twice in dev), not from combat code. Worth silencing (e.g. `audio: { noAudio: true }` until audio exists) in milestone 7.
+- No sound yet (milestone 7). Proton hum, trap snap and ghost wail will hook into the same events.
+
+## Next: Milestone 4 — World
+- Room transitions, the Firehouse hub plus the Library, the save system (fire pole) and the area map.
+- Decide what persists across death (captured ghosts, essence) once saves exist.
