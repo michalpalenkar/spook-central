@@ -4,7 +4,7 @@ export const KEY_BINDINGS = {
   right: ['D', 'RIGHT'],
   up: ['W', 'UP'],
   down: ['S', 'DOWN'],
-  jump: ['SPACE', 'Z'],
+  jump: ['SPACE', 'Z', 'ENTER'],
   fire: ['J', 'X'],
   trap: ['K', 'C'],
   dash: ['L', 'SHIFT'],

@@ -8,13 +8,34 @@
  * State: { mapOpen, map (from buildMapView), hint (id, { id, vars } or
  * null), toast ({ id, text } or null), banner (area name, same shape), area
  * (current area id), boss ({ name, health 0..1, phase, phases } during a
- * boss fight, else null) }. Toasts and banners have separate slots so an
- * area name never hides a message.
+ * boss fight, else null), screen ('loading', 'title', 'playing', 'paused'
+ * or 'ending'), menu (systems/menuModel.js menuView, or null), settings
+ * (systems/settings.js), ending (stats for the ending screen, or null) }.
+ * Toasts and banners have separate slots so an area name never hides a
+ * message.
+ *
+ * The other way, React sends commands to the game with `send` (menu clicks,
+ * "pause now" when the device turns to portrait); the game listens with
+ * `onCommand`.
  */
 export class GameBridge {
-  constructor() {
-    this.state = { mapOpen: false, map: null, hint: null, toast: null, banner: null, area: null, boss: null }
+  constructor(initial = {}) {
+    this.state = {
+      mapOpen: false,
+      map: null,
+      hint: null,
+      toast: null,
+      banner: null,
+      area: null,
+      boss: null,
+      screen: 'loading',
+      menu: null,
+      settings: null,
+      ending: null,
+      ...initial,
+    }
     this.listeners = new Set()
+    this.commandListeners = new Set()
     this.messageCount = 0
     this.subscribe = this.subscribe.bind(this)
     this.getState = this.getState.bind(this)
@@ -35,6 +56,17 @@ export class GameBridge {
     if (!changed) return
     this.state = { ...this.state, ...partial }
     for (const listener of this.listeners) listener()
+  }
+
+  /** Sends a command from the overlays to the game: { type, ... }. */
+  send(command) {
+    for (const listener of this.commandListeners) listener(command)
+  }
+
+  /** Listens for commands; returns a function that stops listening. */
+  onCommand(listener) {
+    this.commandListeners.add(listener)
+    return () => this.commandListeners.delete(listener)
   }
 
   /** Shows a short message; each call gets a new id so repeats show again. */

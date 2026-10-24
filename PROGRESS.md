@@ -230,7 +230,53 @@
 - In the built-in browser, screenshots right after stepping the sleeping loop sometimes show the previous frame; step again and wait ~0.5 s.
 - Still open from earlier milestones: the `AudioContext` console errors after a dev reload, the chunk-size warning, playtesting by hand.
 
-## Next: Milestone 7 — Polish
-- Audio (Web Audio: proton hum, trap snap, ghost wail, jump, thunder for the storm), mute and volume, started on the first gesture.
-- Title screen (New game / Continue), pause and settings (volume, touch-control opacity, haptics), a proper ending flow.
-- Performance pass on mobile, code-split Phaser, silence the dev `AudioContext` errors, gate haptics on user activation.
+## Milestone 7: Polish (done)
+
+**All seven milestones are complete.** The vertical slice has a title screen, four areas, two bosses and the Slimer chase, an ending, synthesized sound and music, and settings.
+
+**What's in:**
+- **Audio, all synthesized with the Web Audio API** (nothing recorded or downloaded, no theme song):
+  - `systems/AudioEngine.js`: a mixer (sfx and music buses → master volume/mute → compressor), voices built from oscillators and one shared white-noise buffer with filters, envelopes and vibrato, a voice budget (28) and a per-sound minimum gap. Nodes disconnect themselves when they end.
+  - `systems/soundRecipes.js` (pure): 30 effects as data (jump, wall jump, landing scaled by impact, dash, stream start, trap throw/open/snap, capture beam, ghost wail and moan, hurt, death, essence chime on a pentatonic step, relic arpeggio, save chord, shop buy/denied, floor crumble, Librarian shriek, mascot roar, books, globs, stomp, boss defeat, thunder, menu clicks), each with slight pitch variation. Thunder follows a lightning strike after 0.2–1.4 s, quieter the later it comes (`StormEffects` now takes an `onStrike` callback).
+  - **Proton hum** while fire is held: two detuned saws through a wobbling resonant filter plus a crackle; it rises in pitch and brightness while a ghost is tethered and stops on release, pause, death or a room change.
+  - **Ambient music** (`systems/ambientRecipes.js`, pure): one slow pad per area (warm firehouse, airy library, tritone hotel, low stormy rooftop), plus the title and a major-key ending, with sparse random bells. Pads cross-fade between areas; the music ducks while paused.
+  - **Starts on the first gesture** (`ui/useAudioUnlock.js`: pointer, touch, key and click events). There is no AudioContext before then, so iOS and Chrome's autoplay rules are met. Audio is suspended while the page is hidden and resumed when it's back.
+  - Phaser's own sound manager is off (`audio: { noAudio: true }`). That fixes the old `InvalidStateError: Cannot suspend/resume a closed AudioContext` errors after a dev reload (they came from Phaser's manager in the StrictMode double mount).
+- **Game flow** (`scenes/MenuScene.js`, which draws nothing): Preload → **Title** → World/UI ↔ pause → **Ending** → Title. The Menu scene never stops, so it owns the keyboard and updates the shared `InputState` once per frame (on Phaser's `PRE_STEP`) for every scene. Game code still reads only `InputState`.
+  - **Title** (`scenes/TitleScene.js` + HTML): a slow pan along the stormy rooftop skyline with a ghost drifting between the towers. Continue (disabled without a save), New game (asks before wiping a save), Settings.
+  - **Pause** (Esc/Tab/Start/❚❚): the World scene pauses (physics, tweens, particles and timers freeze). Resume, Area map (the old map, now part of the pause menu; any button or a tap goes back), Settings, Quit to title.
+  - **Ending**: after the mascot's last round there's a 3.2 s beat to watch him burst (exits stay shut), then a fade to `scenes/EndingScene.js` (the storm has cleared, a dawn glow on the horizon, marshmallow puffs drifting down) with an epilogue, the run's stats (rooms, gear, essence) and Back to the title. The checkpoint save keeps `mallow-defeated`, so Continue still works afterwards.
+  - Menus are plain state in `systems/menuModel.js` (screens, cursor, back stack, intents → effects). Keyboard and gamepad drive it through `InputState` (up/down move, left/right adjust, jump/Enter confirms, dash/Esc back). Clicks and taps on the HTML menus (`ui/Menus.jsx`) go back as bridge commands (`GameBridge.send`/`onCommand`). Enter is now also bound to jump.
+- **Settings** (`systems/settings.js`, stored separately from the save under `spook-central/settings`): volume, music, mute, touch-control opacity (20–100 %) and vibration (disabled and labelled when the device has none). Values are validated, clamped and snapped to their slider; corrupt, newer or unreadable files fall back to defaults; a failed write shows a toast. App applies them to the audio engine, haptics and the touch overlay.
+- **Known issues fixed:** `haptics.js` skips vibrating until `navigator.userActivation.hasBeenActive` (no more "Blocked call to navigator.vibrate"); the game pauses when a touch device turns to portrait and when the page is hidden; the dev AudioContext errors are gone.
+- **Performance and loading:**
+  - Phaser and the game load lazily (`Game.jsx` imports `game/config.js`). Phaser has its own chunk (1.19 MB, 318 kB gzipped), the game code another (128 kB), and the page shell is 285 kB (87 kB gzipped). A game-only change no longer invalidates the cached engine. The chunk-size warning limit is set just above the engine's size. While the chunks load, a "Loading…" screen shows.
+  - Phaser's mouse, touch and gamepad plugins are off (touch is the HTML overlay; pads are polled directly), the context menu is disabled and WebGL asks for `high-performance`.
+  - React overlays subscribe to single bridge values (`useBridgeValue`), so boss-bar or hint updates don't re-render the whole app.
+- New tuning in `constants.js` (`SETTINGS`, `AUDIO`, `TITLE`, `ENDING`), new colours in `palette.js` (`title`, `ending`).
+
+**Verified:**
+- `pnpm lint`, `pnpm test` (468 tests in 48 files, 79 new: settings validation/clamping/storage errors, every sound recipe valid and deterministic per seed with the jitter bounds, thunder distance, voice budget and repeat gap, bus gains with mute and pause ducking, every ambient pad and its bells, the menu model (title with/without a save, new-game confirmation, pause/back/resume, map, sliders and toggles, disabled vibration, pointer focus/activate/adjust, input → intents), bridge commands, the InputState frame counter, haptics waiting for user activation) and `pnpm build` all pass. The reachability tests pass unchanged (no geometry changed).
+- In the dev server (built-in browser, loop stepped at 60 fps, input through a fake `InputState` source plus real clicks and synthetic touch pointers):
+  - **Title** with and without a save; keyboard navigation; Settings → volume 80→60 %, mute on/off, touch opacity 100→80→90 %, all written to `localStorage` and reflected in the audio gains and the overlay's opacity.
+  - **Audio:** no AudioContext exists before a gesture; one real click created it in state `running`, started the title pad and played the menu click. In play: jump, land, proton start, hum (on while firing, `tethered` while locked on, off on release), moan, trap throw, trap open, capture beam, wail, trap snap, essence, hurt, roar on the mascot waking, thunder on forced and natural strikes, boss defeat. The active voice count went back to 0 after sounds ended. Music ducked from 0.16 to 0.072 while paused and came back.
+  - **Pause:** Esc pauses (World scene paused), the map opens and closes, resume restores full-speed running (135 px/s). Synthetic touch on ❚❚ opens the pause menu; real taps on Settings, +, Back, Area map, the map itself and Resume all work on the 740×360 layout. Resizing to portrait (touch emulation) paused the game behind the rotate card.
+  - **Ending:** finished the mascot's last round through the real capture handler; after 3.2 s and the fade the Ending scene and screen showed, then Back to the title, where Continue (from the checkpoint save) put the player at the last fire pole with all three abilities. Quit to title and New game (with the confirmation) wiped the save and started fresh.
+  - After a fresh reload, taking a hit before any gesture logged nothing: no vibrate warning, no AudioContext error. No console errors anywhere in the session.
+  - The production build (`pnpm preview`) loads the shell, then the game and Phaser chunks, and shows the title with no errors.
+- **Screenshots checked by eye** at **1280×720**: title, settings (from the title), pause menu over the Garage, the Garage, Library Archives, Hotel Ballroom (Slimer), Roof Access in the storm, the mascot fight with the stream and boss bar, and the ending. At **740×360** with touch emulation: Garage with the overlay at 80 % opacity, pause, settings, the map, title, ending, Front Steps, Ballroom and The Climb.
+- **Performance (rough, desktop Chrome):** 240 stepped frames each (update plus render submission) with everything on: Temple Roof (storm, boss awake, stream firing, audio running) mean 0.08 ms; Ballroom 0.21 ms (p95 0.7 ms); Stacks while firing 0.43 ms (p95 1.4 ms, max 7–9 ms on single GC-like spikes). Far below the 16.7 ms budget, but that's desktop CPU, not a phone.
+
+**Known issues / not verified:**
+- **Nothing was heard.** The browser here has no speakers I can listen through: sounds were checked by their node graph, the context state, which sounds fired and that voices ended, not by ear. The mix (relative loudness, the hum's character, thunder, the pads) needs a listen, and probably some tuning in `soundRecipes.js` and `AUDIO`.
+- **Not verified on real hardware:** iOS Safari audio unlock (designed for it: the context is created inside a touch/click handler, `webkitAudioContext` fallback, resume on every gesture after an interruption), the iOS ring/silent switch (Web Audio is muted by it, which can't be changed from a page), performance and audio CPU on a mid-range phone, haptics, and real multitouch on the menus.
+- With the pane hidden or a tab switch, the game pauses itself (by design); in automated runs that means resuming before stepping.
+- Scene operations (pause, stop, start) apply on the next frame, so a "pause" sent by React between frames takes effect one frame later. The World doesn't step in between.
+- A mouse resting over a menu item keeps it highlighted (hover focus), so keyboard navigation starts from there after the menu changes. Normal for mouse-driven menus.
+- Ending stats count rooms visited; dev jumps (`?room=`, the console driver) skip rooms, so test runs show low counts.
+- The world has **16** rooms (3 + 5 + 5 + 3); earlier notes in this file say 18, which was a miscount.
+- Menu sounds play only after the first gesture, so the very first keyboard press on the title is silent if no click came before it. That press is itself a gesture, so audio is running from then on.
+- Still open from earlier milestones: playtesting by hand (game feel, boss difficulty, the mascot is probably too easy), one-way platforms can't be dropped through, broken weak floors reset on reload.
+
+## Next
+The vertical slice is complete. Natural next steps: a playtest on real phones (`pnpm dev --host`) for audio, touch feel and frame rate; tuning the mix by ear; and difficulty tuning for the bosses.

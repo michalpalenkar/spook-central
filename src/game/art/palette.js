@@ -144,6 +144,18 @@ export const PALETTE = {
     rain: '#b9b4e8',
   },
 
+  // Title and ending screens: the ghost drifting past the title, and the
+  // dawn breaking over the city after the mascot falls, with marshmallow
+  // puffs drifting down.
+  title: {
+    ghost: '#c8ffd9',
+    glow: '#7dff6a',
+  },
+  ending: {
+    dawn: '#ff9a62',
+    puff: '#fff4ea',
+  },
+
   // Screen-space atmosphere shared by every area.
   atmosphere: {
     vignette: '#020308',

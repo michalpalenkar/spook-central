@@ -622,3 +622,98 @@ export const FIRE_POLE = {
   SAVE_GLOW_ALPHA: 0.85,
   SAVE_GLOW_TIME: 0.7,
 }
+
+// Player settings (systems/settings.js). Volumes and opacity run 0..1.
+export const SETTINGS = {
+  DEFAULT_VOLUME: 0.8,
+  DEFAULT_MUSIC: 0.5,
+  VOLUME_STEP: 0.1,
+  DEFAULT_TOUCH_OPACITY: 1,
+  TOUCH_OPACITY_MIN: 0.2,
+  TOUCH_OPACITY_STEP: 0.1,
+}
+
+// Web Audio mixing (systems/AudioEngine.js, systems/soundRecipes.js). Gains
+// are linear, times in seconds.
+export const AUDIO = {
+  // Headroom under the master volume, ahead of the compressor.
+  MASTER_GAIN: 0.7,
+  SFX_GAIN: 1,
+  MUSIC_GAIN: 0.32,
+  // The music drops to this fraction while the game is paused.
+  PAUSE_DUCK: 0.45,
+  // Volume changes glide with this time constant, so sliders don't click.
+  RAMP_TIME: 0.04,
+  // Sound effects playing at once; extra ones are dropped.
+  MAX_VOICES: 28,
+  // The same effect plays at most this often.
+  MIN_GAP: 0.05,
+  // Every effect's pitch is varied by up to ± this fraction.
+  PITCH_JITTER: 0.04,
+  // Length of the shared white-noise buffer.
+  NOISE_SECONDS: 1,
+  // Gains never ramp to exactly zero (exponential ramps can't reach it).
+  SILENCE: 0.0001,
+
+  // The proton stream's hum while fire is held.
+  HUM_BASE: 68,
+  HUM_GAIN: 0.13,
+  HUM_ATTACK: 0.05,
+  HUM_RELEASE: 0.12,
+  HUM_CUTOFF: 900,
+  HUM_WOBBLE_RATE: 7,
+  HUM_WOBBLE_DEPTH: 260,
+  HUM_CRACKLE_GAIN: 0.045,
+  HUM_CRACKLE_FREQ: 3200,
+  // Locked onto a ghost, the hum rises and opens up.
+  HUM_TETHER_PITCH: 1.18,
+  HUM_TETHER_CUTOFF: 1.6,
+
+  // Thunder follows the flash after a delay; the longer it is, the farther
+  // and quieter the strike.
+  THUNDER_DELAY_MIN: 0.2,
+  THUNDER_DELAY_MAX: 1.4,
+  THUNDER_GAIN_NEAR: 0.55,
+  THUNDER_GAIN_FAR: 0.25,
+
+  // Landings softer than this (px/s) make no sound.
+  LAND_MIN_SPEED: 140,
+
+  // Ambient music: pads cross-fade over this long.
+  AMBIENT_FADE: 1.6,
+}
+
+// The title screen's slow pan across the skyline.
+export const TITLE = {
+  PAN_SPEED: 10,
+  // The ghost's height and starting point, as fractions of the screen.
+  GHOST_Y: 0.42,
+  GHOST_START_X: 0.7,
+  GHOST_SPEED: 16,
+  GHOST_BOB: 6,
+  GHOST_BOB_SPEED: 1.6,
+  GHOST_ALPHA: 0.85,
+  GHOST_GLOW_SCALE: 2.4,
+  GHOST_GLOW_ALPHA: 0.35,
+}
+
+// After the mascot falls: a beat to watch him burst, then the ending.
+export const ENDING = {
+  DELAY: 3.2,
+  FADE_TIME: 1.2,
+  PAN_SPEED: 6,
+  // Marshmallow puffs drifting down over the city.
+  PUFF_INTERVAL: 0.12,
+  PUFF_LIFETIME: 9,
+  PUFF_SPEED_Y: 18,
+  PUFF_SWAY: 10,
+  PUFF_SCALE_MIN: 0.3,
+  PUFF_SCALE_MAX: 0.7,
+  PUFF_ALPHA: 0.8,
+  PUFF_SPAWN_ABOVE: 8,
+  // The sunrise glow: centre height and size as fractions of the screen.
+  DAWN_Y: 0.95,
+  DAWN_WIDTH: 1.4,
+  DAWN_HEIGHT: 1.1,
+  DAWN_ALPHA: 0.55,
+}

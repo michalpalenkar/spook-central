@@ -9,10 +9,12 @@ import { boltPath, createStorm, flashAlpha, stepStorm } from './stormTiming.js'
  * The storm over Spook Central: slanted rain across the screen, lightning
  * bolts in the sky behind the skyline, and the white flash that lights up
  * everything when one strikes. Timing lives in systems/stormTiming.js.
+ * `onStrike` is called for every strike (the thunder).
  */
 export class StormEffects {
-  constructor(scene, rng = Math.random) {
+  constructor(scene, { rng = Math.random, onStrike = null } = {}) {
     this.rng = rng
+    this.onStrike = onStrike
     this.storm = createStorm(STORM)
     this.bolt = scene.add.graphics().setScrollFactor(0).setDepth(DEPTH.SKY_BOLT).setBlendMode(Phaser.BlendModes.ADD)
     this.flash = scene.add
@@ -58,5 +60,6 @@ export class StormEffects {
     stroke(main, STORM.BOLT_WIDTH, toColor(PALETTE.storm.bolt), STORM.BOLT_HALO_ALPHA)
     stroke(main, 1, toColor(PALETTE.storm.boltCore), 1)
     if (branch) stroke(branch, 1, toColor(PALETTE.storm.bolt), STORM.BOLT_BRANCH_ALPHA)
+    this.onStrike?.()
   }
 }

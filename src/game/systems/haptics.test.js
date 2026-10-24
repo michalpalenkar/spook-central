@@ -43,4 +43,13 @@ describe('haptics', () => {
     }
     expect(vibrate(HAPTICS.HIT, nav)).toBe(false)
   })
+
+  it('waits for the first user gesture where the browser tracks it', () => {
+    const nav = fakeNavigator()
+    nav.userActivation = { hasBeenActive: false }
+    expect(vibrate(HAPTICS.HIT, nav)).toBe(false)
+    expect(nav.calls).toEqual([])
+    nav.userActivation.hasBeenActive = true
+    expect(vibrate(HAPTICS.HIT, nav)).toBe(true)
+  })
 })

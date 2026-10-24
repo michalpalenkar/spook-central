@@ -49,4 +49,21 @@ describe('GameBridge', () => {
     expect(getState().mapOpen).toBe(true)
     expect(listener).toHaveBeenCalled()
   })
+
+  it('takes initial state', () => {
+    const bridge = new GameBridge({ settings: { volume: 1 } })
+    expect(bridge.getState().settings).toEqual({ volume: 1 })
+    expect(bridge.getState().screen).toBe('loading')
+  })
+
+  it('delivers commands to listeners until they stop listening', () => {
+    const bridge = new GameBridge()
+    const listener = vi.fn()
+    const stop = bridge.onCommand(listener)
+    bridge.send({ type: 'pause' })
+    expect(listener).toHaveBeenCalledWith({ type: 'pause' })
+    stop()
+    bridge.send({ type: 'pause' })
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
 })

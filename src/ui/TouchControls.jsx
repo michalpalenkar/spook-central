@@ -18,7 +18,7 @@ const DPAD_ARMS = ['up', 'left', 'right', 'down']
  * slide from one button to another. Held actions go to `touchInput`, which
  * the game polls like any other InputState source.
  */
-function TouchControls({ touchInput }) {
+function TouchControls({ touchInput, opacity = 1 }) {
   const rootRef = useRef(null)
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function TouchControls({ touchInput }) {
   }, [touchInput])
 
   return (
-    <div ref={rootRef} className="touch-controls" aria-hidden="true">
+    <div ref={rootRef} className="touch-controls" style={{ opacity }} aria-hidden="true">
       <div className="touch-dpad" data-touch="dpad">
         {DPAD_ARMS.map((direction) => (
           <span key={direction} className={`touch-dpad-arm touch-dpad-${direction}`} data-action={direction} />

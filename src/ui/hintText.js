@@ -5,7 +5,7 @@ export const HINT_TEXT = {
   move: { keys: '← → or A D to run · Space to jump, hold for height', touch: 'D-pad to run · hold Jump for height' },
   climb: { keys: 'Jump up through the wooden planks', touch: 'Jump up through the wooden planks' },
   save: { keys: 'Press ↑ at the fire pole to rest and save', touch: 'Press ↑ at the fire pole to rest and save' },
-  map: { keys: 'Tab or Esc opens the map', touch: 'The ❚❚ button opens the map' },
+  map: { keys: 'Tab or Esc pauses · the map is in the pause menu', touch: 'The ❚❚ button pauses · the map is in the pause menu' },
   combat: { keys: 'Hold J to wrangle a ghost with the proton stream', touch: 'Hold Fire to wrangle a ghost' },
   trap: { keys: 'Weaken a ghost, then press K to throw a trap under it', touch: 'Weaken a ghost, then tap Trap' },
   vault: { keys: 'The archive vault. Shhh… something old is sleeping.', touch: 'The archive vault. Shhh… something old is sleeping.' },

@@ -14,6 +14,8 @@ export class InputState {
     this.sources = []
     this.current = emptyActions()
     this.previous = emptyActions()
+    // How many times update() has run: a frame number for "pressed this frame" checks.
+    this.frame = 0
   }
 
   addSource(source) {
@@ -31,6 +33,7 @@ export class InputState {
     }
     this.previous = this.current
     this.current = next
+    this.frame++
   }
 
   isDown(action) {

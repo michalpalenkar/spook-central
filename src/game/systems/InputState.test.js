@@ -62,4 +62,12 @@ describe('keyboard bindings', () => {
     const actions = readActions(KEY_BINDINGS, (key) => down.has(key))
     expect(actions).toEqual({ ...emptyActions(), jump: true, left: true, dash: true })
   })
+
+  it('counts updates', () => {
+    const input = new InputState()
+    expect(input.frame).toBe(0)
+    input.update()
+    input.update()
+    expect(input.frame).toBe(2)
+  })
 })

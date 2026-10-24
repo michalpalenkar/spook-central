@@ -1,9 +1,11 @@
 import Phaser from 'phaser'
 import {
   ATMOSPHERE,
+  AUDIO,
   BOSS_FIGHT,
   CAMERA,
   DEPTH,
+  ENDING,
   ESSENCE,
   FIRE_POLE,
   GHOST,
@@ -44,6 +46,7 @@ import { TEST_ROOM } from '../levels/testRoom.js'
 import { AREAS, ROOMS, getRoom } from '../levels/world.js'
 import {
   ABILITY,
+  ABILITY_IDS,
   ABILITY_INFO,
   connectedTiles,
   effectiveTiles,
@@ -58,12 +61,9 @@ import { BOSSES, isBeaten, markBeaten, pendingRelic } from '../systems/bosses.js
 import { buildRoom, clearTiles, roomCollisionFilter } from '../systems/buildRoom.js'
 import { createDeathSequence, startDeath, stepDeath } from '../systems/deathSequence.js'
 import { collectEssence } from '../systems/essence.js'
-import { GamepadInput } from '../systems/GamepadInput.js'
 import { vibrate } from '../systems/haptics.js'
 import { SAVE_HINT, canUsePole, hintAt } from '../systems/hints.js'
 import { createHitStop, stepHitStop, triggerHitStop } from '../systems/hitStop.js'
-import { InputState } from '../systems/InputState.js'
-import { KeyboardInput } from '../systems/KeyboardInput.js'
 import { lampSpots } from '../systems/lampSpots.js'
 import { groundBelow } from '../systems/lineOfSight.js'
 import { PROJECTILE_KIND } from '../systems/projectile.js'
@@ -82,6 +82,7 @@ import {
 } from '../systems/session.js'
 import { buy, nextItem } from '../systems/shop.js'
 import { advanceChase, slimerInRoom } from '../systems/slimerChase.js'
+import { SOUND } from '../systems/soundRecipes.js'
 import { StormEffects } from '../systems/StormEffects.js'
 import { HUD_KEYS } from './UIScene.js'
 
@@ -115,6 +116,9 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.session = this.registry.get('session')
     this.bridge = this.registry.get('bridge') ?? null
+    this.audio = this.registry.get('audio') ?? null
+    // Bound and updated once per frame by the Menu scene.
+    this.inputState = this.registry.get('inputState')
     const room = resolveRoom(this.session.roomId) ?? getRoom(this.session.respawn.roomId)
     this.room = room
     const { abilities } = this.session
@@ -131,15 +135,6 @@ export class WorldScene extends Phaser.Scene {
     this.layer = layer
     this.createScenery(room, width, height)
     this.gates = new GateOverlay(this, room, abilities, brokenIn(this.session, room.id))
-
-    // The input state outlives scene restarts, so keys are bound only once.
-    if (!this.inputState) {
-      this.inputState = new InputState()
-      this.inputState.addSource(new KeyboardInput(this.input.keyboard))
-      this.inputState.addSource(new GamepadInput())
-      const touchInput = this.registry.get('touchInput')
-      if (touchInput) this.inputState.addSource(touchInput)
-    }
 
     const poleData = room.entities.find((e) => e.type === 'pole')
     this.pole = poleData ? new FirePole(this, poleData, room) : null
@@ -179,8 +174,12 @@ export class WorldScene extends Phaser.Scene {
     this.death = createDeathSequence()
     this.tetheredGhost = null
     this.leaving = false
-    this.mapOpen = false
     this.sealed = false
+    // After the final boss: null, then 'waiting' (ENDING.DELAY), then 'fading'.
+    this.ending = null
+    this.endingTimer = 0
+    this.wasFiring = false
+    this.weakenedFoes = new Set()
     this.seal = this.add.graphics().setDepth(DEPTH.GATES).setBlendMode(Phaser.BlendModes.ADD)
     this.time0 = 0
 
@@ -192,7 +191,9 @@ export class WorldScene extends Phaser.Scene {
     camera.fadeIn(ROOM_TRANSITION.FADE_TIME * 1000)
 
     this.announceArea()
-    this.bridge?.update({ mapOpen: false, hint: null, boss: null })
+    this.audio?.setAmbient(room.area ?? null)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.audio?.setHum(false))
+    this.bridge?.update({ hint: null, boss: null })
     this.publishHud()
     if (!this.scene.isActive('UI')) this.scene.launch('UI')
   }
@@ -205,7 +206,7 @@ export class WorldScene extends Phaser.Scene {
     const palette = sceneryPalette(variant)
     this.atmosphere = new Atmosphere(this, { width, height }, palette, { dust: !variant.storm })
     this.lamps = variant.outdoor ? [] : lampSpots(this.tiles, ATMOSPHERE).map((spot) => new Lamp(this, spot, variant.area, palette))
-    this.storm = variant.storm ? new StormEffects(this) : null
+    this.storm = variant.storm ? new StormEffects(this, { onStrike: () => this.audio?.thunder() }) : null
   }
 
   // Ghost and orb code reads `room.tiles`; give them the tiles as met.
@@ -302,13 +303,16 @@ export class WorldScene extends Phaser.Scene {
   update(_time, deltaMs) {
     const realDt = deltaMs / 1000
     const dt = Math.min(realDt, MAX_FRAME_DELTA)
-    this.inputState.update()
     const input = this.inputState
 
-    if (input.justPressed('pause') && !this.leaving && !this.death.active) this.toggleMap()
+    // Pausing pauses this whole scene (scenes/MenuScene.js).
+    if (input.justPressed('pause') && !this.leaving && !this.death.active && this.ending !== 'fading') {
+      this.scene.get('Menu').openPause()
+      return
+    }
     const camera = this.cameras.main
     this.scenery.update(camera)
-    if (this.mapOpen || this.leaving) {
+    if (this.leaving) {
       this.physics.world.pause()
       return
     }
@@ -329,6 +333,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.time0 += dt
+    this.updateEnding(dt)
     this.gates.update(dt)
     const firing = input.isDown('fire')
     const { abilities } = this.session
@@ -341,6 +346,7 @@ export class WorldScene extends Phaser.Scene {
       insideBarrier: overlapsBarrier(this.tiles, rect, TILE_SIZE),
     })
     this.kickUpDust()
+    this.playMoveSounds()
     this.updateStomp(input)
 
     this.updateStream(dt, firing)
@@ -354,22 +360,18 @@ export class WorldScene extends Phaser.Scene {
     this.updateProjectiles(dt)
     this.updateOrbs(dt)
     this.updateRelics(dt, playerCenter)
+    this.moanWhenWeakened()
     this.checkGhostContact()
     if (this.player.dead) return
     this.updateInteractions(input)
     this.drawSeal()
-    if (!this.sealed) this.checkExits()
+    if (!this.sealed && !this.ending) this.checkExits()
   }
 
-  toggleMap() {
-    this.mapOpen = !this.mapOpen
-    if (!this.bridge) return
-    if (!this.mapOpen) {
-      this.bridge.update({ mapOpen: false })
-      return
-    }
+  /** The area map for the pause menu, with the player where they stand. */
+  mapView() {
     const { respawn } = this.session
-    const map = buildMapView(
+    return buildMapView(
       ROOMS,
       {
         visited: this.session.visited,
@@ -379,7 +381,49 @@ export class WorldScene extends Phaser.Scene {
       },
       TILE_SIZE,
     )
-    this.bridge.update({ mapOpen: true, map })
+  }
+
+  // Jumps, wall jumps, dashes and hard landings.
+  playMoveSounds() {
+    const events = this.player.lastEvents
+    if (!events || !this.audio) return
+    if (events.wallJumped) this.audio.play(SOUND.WALL_JUMP)
+    else if (events.jumped) this.audio.play(SOUND.JUMP)
+    if (events.dashed) this.audio.play(SOUND.DASH)
+    if (events.landed && events.landingSpeed >= AUDIO.LAND_MIN_SPEED) {
+      this.audio.play(SOUND.LAND, { strength: Math.min(1, events.landingSpeed / PLAYER.MAX_FALL_SPEED) })
+    }
+  }
+
+  // A ghost moans as the stream wears it down to weakened.
+  moanWhenWeakened() {
+    for (const ghost of this.ghosts) {
+      const weak = ghost.active && ghost.weakened
+      if (weak && !this.weakenedFoes.has(ghost)) this.audio?.play(SOUND.MOAN)
+      if (weak) this.weakenedFoes.add(ghost)
+      else this.weakenedFoes.delete(ghost)
+    }
+  }
+
+  // The mascot is beaten: a moment to watch him burst, then fade to the ending.
+  updateEnding(dt) {
+    if (this.ending !== 'waiting') return
+    this.endingTimer -= dt
+    if (this.endingTimer > 0) return
+    this.ending = 'fading'
+    const camera = this.cameras.main
+    camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.get('Menu').showEnding(this.endingStats()))
+    camera.fadeOut(ENDING.FADE_TIME * 1000)
+  }
+
+  endingStats() {
+    return {
+      rooms: this.session.visited.size,
+      totalRooms: ROOMS.length,
+      abilities: this.session.abilities.size,
+      totalAbilities: ABILITY_IDS.length,
+      essence: this.wallet.essence,
+    }
   }
 
   // Dust puffs at the player's feet on hard landings and jumps off the floor.
@@ -403,6 +447,7 @@ export class WorldScene extends Phaser.Scene {
     markBroken(this.session, this.room.id, cells)
     clearTiles(this.layer, this.tiles, cells)
     this.gates.crumble(cells)
+    this.audio?.play(SOUND.CRUMBLE)
     this.cameras.main.shake(SCREEN_SHAKE.CRUMBLE_TIME * 1000, SCREEN_SHAKE.CRUMBLE_INTENSITY)
   }
 
@@ -411,6 +456,9 @@ export class WorldScene extends Phaser.Scene {
     const target = this.stream.update(dt, firing, this.player.nozzle, this.player.facing, live)
     for (const foe of this.foes) foe.tethered = foe === target
     this.tetheredGhost = target
+    if (firing && !this.wasFiring) this.audio?.play(SOUND.PROTON_START)
+    this.wasFiring = firing
+    this.audio?.setHum(firing, Boolean(target))
     if (target) target.takeStreamDamage(PROTON_STREAM.DAMAGE_PER_SECOND * dt)
   }
 
@@ -418,11 +466,17 @@ export class WorldScene extends Phaser.Scene {
     if (input.justPressed('trap') && this.trap.canThrow) {
       const { x } = this.player.center
       this.trap.throw(x, this.player.body.bottom, this.tetheredGhost?.x ?? null, this.player.facing)
+      this.audio?.play(SOUND.TRAP_THROW)
     }
 
     const foes = this.foes
     const events = this.trap.update(dt, foes)
-    if (events.captureStarted) events.captureStarted.startCapture()
+    if (events.armed) this.audio?.play(SOUND.TRAP_OPEN)
+    if (events.captureStarted) {
+      events.captureStarted.startCapture()
+      this.audio?.play(SOUND.CAPTURE_BEAM)
+      this.audio?.play(SOUND.WAIL)
+    }
 
     if (this.trap.capturing) {
       const target = foes.find((g) => g.id === this.trap.logic.targetId)
@@ -436,6 +490,7 @@ export class WorldScene extends Phaser.Scene {
   onCaptured(foe) {
     const outcome = foe.capture() ?? {}
     const { x, y } = this.trap.mouth
+    this.audio?.play(SOUND.TRAP_SNAP)
     const shake = () => this.cameras.main.shake(SCREEN_SHAKE.CAPTURE_TIME * 1000, SCREEN_SHAKE.CAPTURE_INTENSITY)
 
     if (foe.kind === 'ghost') {
@@ -451,10 +506,12 @@ export class WorldScene extends Phaser.Scene {
       // One round down: he roars back.
       this.cameras.main.shake(SCREEN_SHAKE.STOMP_TIME * 1000, SCREEN_SHAKE.STOMP_INTENSITY)
       this.bridge?.toast(MALLOW_ROUND_TEXT)
+      this.audio?.play(SOUND.ROAR)
       return
     }
 
     this.cameras.main.shake(SCREEN_SHAKE.BOSS_DEFEAT_TIME * 1000, SCREEN_SHAKE.BOSS_DEFEAT_INTENSITY)
+    this.audio?.play(SOUND.BOSS_DEFEAT)
     markBeaten(this.session, foe.kind)
     this.dropEssence(x, y, ESSENCE.DROP_COUNT * 2)
     const reward = BOSSES[foe.kind].reward
@@ -464,6 +521,8 @@ export class WorldScene extends Phaser.Scene {
     if (foe.kind === 'mallow') {
       this.bridge?.announceArea(this.room.area, ENDING_BANNER)
       this.bridge?.toast(ENDING_TEXT)
+      this.ending = 'waiting'
+      this.endingTimer = ENDING.DELAY
     }
     writeSave(checkpointSave(this.session, Date.now()))
   }
@@ -495,9 +554,15 @@ export class WorldScene extends Phaser.Scene {
     const wasAwake = boss.awake
     const events = boss.update(dt, player, triggered)
     if (!wasAwake && boss.awake) this.startBossFight()
-    if (events.book) this.spawnProjectile(PROJECTILE_KIND.BOOK, events.book)
+    if (events.book) {
+      this.spawnProjectile(PROJECTILE_KIND.BOOK, events.book)
+      this.audio?.play(SOUND.BOOK)
+    }
     for (const glob of events.globs ?? []) this.spawnProjectile(PROJECTILE_KIND.GLOB, glob)
+    if (events.globs?.length) this.audio?.play(SOUND.GLOB)
+    if (events.stunned || events.kneeled) this.audio?.play(SOUND.MOAN)
     if (events.landed) {
+      this.audio?.play(SOUND.STOMP)
       const y = boss.floorY - PROJECTILE.SHOCKWAVE_HEIGHT
       for (const dir of [-1, 1]) {
         this.spawnProjectile(PROJECTILE_KIND.SHOCKWAVE, {
@@ -533,6 +598,7 @@ export class WorldScene extends Phaser.Scene {
     this.sealed = true
     this.player.body.setCollideWorldBounds(true)
     this.bridge?.toast(`${this.boss.name} awakens!`)
+    this.audio?.play(this.boss.kind === 'mallow' ? SOUND.ROAR : SOUND.SHRIEK)
     this.publishBossBar()
   }
 
@@ -583,6 +649,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (collected === 0) return
     this.orbs = this.orbs.filter((orb) => !orb.collected)
+    this.audio?.play(SOUND.ESSENCE)
     collectEssence(this.wallet, this.player.health, collected)
     this.publishHud()
   }
@@ -593,6 +660,7 @@ export class WorldScene extends Phaser.Scene {
       if (!grantAbility(this.session, relic.ability)) continue
       const info = ABILITY_INFO[relic.ability]
       this.bridge?.toast(`${info.name} · ${info.blurb}`)
+      this.audio?.play(SOUND.RELIC)
       triggerHitStop(this.hitStop, HIT_STOP.CAPTURE)
       writeSave(checkpointSave(this.session, Date.now()))
       this.publishHud()
@@ -613,8 +681,11 @@ export class WorldScene extends Phaser.Scene {
     triggerHitStop(this.hitStop, HIT_STOP.PLAYER_HIT)
     this.cameras.main.shake(SCREEN_SHAKE.PLAYER_HIT_TIME * 1000, SCREEN_SHAKE.PLAYER_HIT_INTENSITY)
     vibrate()
+    this.audio?.play(SOUND.HURT)
     this.publishHud()
     if (this.player.dead) {
+      this.audio?.play(SOUND.DEATH)
+      this.audio?.setHum(false)
       this.stream.stop()
       this.tetheredGhost = null
       this.bridge?.update({ hint: null, boss: null })
@@ -658,8 +729,10 @@ export class WorldScene extends Phaser.Scene {
     const { ok } = buy(this.session, item)
     if (!ok) {
       this.bridge?.toast(TOO_POOR_TEXT)
+      this.audio?.play(SOUND.DENIED)
       return
     }
+    this.audio?.play(SOUND.BUY)
     this.player.health.max = this.session.maxHp
     this.player.health.hp = Math.min(this.player.health.hp + (item.ability ? 0 : 1), this.session.maxHp)
     const blurb = item.ability ? ABILITY_INFO[item.ability].blurb : 'One more battery cell'
@@ -675,6 +748,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.health.hp = this.session.hp
     const { ok } = writeSave(save)
     this.pole.flash()
+    this.audio?.play(SOUND.SAVE)
     this.bridge?.toast(ok ? SAVED_TEXT : SAVE_FAILED_TEXT)
     this.publishHud()
   }
@@ -716,6 +790,7 @@ export class WorldScene extends Phaser.Scene {
   leave() {
     this.leaving = true
     this.stream.stop()
+    this.audio?.setHum(false)
     this.bridge?.update({ hint: null, boss: null })
     const camera = this.cameras.main
     camera.stopFollow()
