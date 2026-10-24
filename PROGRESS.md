@@ -31,8 +31,43 @@
 - Not verified by hand on real hardware: game feel was checked numerically and in screenshots, not by playing with a physical keyboard at 60/120 Hz.
 - No Boot/Title/UI/Pause scenes yet. They come with later milestones.
 
-## Next: Milestone 2 — Input everywhere
-- Touch overlay (`ui/TouchControls.jsx`) writing to `InputState` via Pointer Events with per-pointer tracking and finger sliding, shown only on `pointer: coarse`.
-- Gamepad source (stick/D-pad, A/X/Y/B/RB/RT/Start).
-- Portrait "rotate your device" screen, safe-area insets, viewport meta (no zoom/scroll/long-press), optional haptics hook.
-- Verify in mobile emulation.
+## Milestone 2: Input everywhere (done)
+
+**What's in:**
+- **Three input sources, one `InputState`.** `WorldScene` adds `KeyboardInput`, `GamepadInput` and `TouchInput` as sources. Game code still reads only `InputState`.
+- **React ↔ Phaser bridge.** `App.jsx` creates one `TouchInput` (`game/systems/TouchInput.js`) and passes it to both `<TouchControls>`, which writes to it, and `<Game>`. `createGameConfig` stores it in the game registry in a `preBoot` callback, and the scene picks it up there. There are no globals and no events. Phaser just polls it like the keyboard.
+- **Touch overlay** (`ui/TouchControls.jsx` + `.css`): an HTML overlay above the canvas with a D-pad bottom-left (one round 168 px hit area, 8-way, with arms that light up), a diamond of 4 action buttons bottom-right (62 px; trap top, fire left, dash right, jump bottom, mirroring the gamepad face buttons), and a 56 px pause button top-right. It is semi-transparent and lights ecto-green while held. Placement respects `env(safe-area-inset-*)`.
+  - Rendered only when `(pointer: coarse)` matches (`ui/useMediaQuery.js`), so desktop gets no overlay and no listeners.
+  - Pointer Events with per-pointer tracking: `pointerdown` on the overlay, then `pointermove`/`up`/`cancel` on `window`. Each move hit-tests again with `elementFromPoint`, so a finger can slide from one button to another. A finger that went down on the D-pad keeps steering when it drifts off the pad, until it slides onto an action button. All fingers are released on `blur` and `visibilitychange`.
+  - Taps shorter than a frame are latched, as in `KeyboardInput`.
+  - The pure mapping lives in `systems/touchMapping.js` (`dpadDirections`: deadzone and 8 equal sectors; `pointerActions`: which actions a finger holds).
+- **Gamepad** (`systems/GamepadInput.js` + pure `systems/gamepadBindings.js`): polls `navigator.getGamepads()` every frame and merges all connected pads. It uses the standard mapping: left stick (per-axis deadzone) and D-pad for move/look, A jump, X / RT fire (analog threshold), Y trap, B / RB dash, Start pause. `GAMEPAD.STICK_DEADZONE` and `TRIGGER_THRESHOLD` are in `constants.js`.
+- **Portrait warning** (`ui/RotateDevice.jsx`): a full-screen "Rotate your device" card with an animated inline-SVG phone. It is shown by CSS only on `(pointer: coarse) and (orientation: portrait)`, and the touch controls are hidden in portrait.
+- **No browser gestures:** the viewport meta has `maximum-scale=1, user-scalable=no, viewport-fit=cover`. `html, body` get `touch-action: none`, `overscroll-behavior: none`, `user-select: none`, `-webkit-touch-callout: none` and no tap highlight. `gesturestart` is cancelled (iOS pinch), and so is `contextmenu` on the overlay (long-press).
+- **Haptics helper** (`systems/haptics.js`): `vibrate(pattern = HAPTICS.HIT)` is a no-op where `navigator.vibrate` is missing (all iOS browsers), when disabled via `setHapticsEnabled(false)`, or when it throws. It isn't called anywhere yet. Milestone 3 calls it when the player is hit.
+
+**Verified:**
+- `pnpm lint`, `pnpm test` (68 tests; new ones cover D-pad sectors and deadzone, finger sliding and anchoring, multi-finger merge, tap latching, every gamepad binding, stick deadzone, trigger threshold, multi-pad merge, and haptics support/disable/error) and `pnpm build` all pass.
+- In the dev server (built-in browser, loop stepped at a fixed 60 fps, synthetic `PointerEvent`s with `pointerType: 'touch'` and distinct `pointerId`s):
+  - Holding D-pad right moves the player (+63 px in 30 frames) and lights the arm.
+  - A second finger holding jump at the same time gives the full 66 px jump while still running. Multitouch works at the event level.
+  - Sliding the jump finger onto fire swaps the held action (jump released, fire held).
+  - A D-pad finger dragged past the pad's left edge steers left. Lifting both fingers releases everything.
+  - A sub-frame tap on jump still jumps (15 px tap height). The pause button sets `pause`.
+- Gamepad, with a faked `navigator.getGamepads()`: stick left moves the player, a deflection of 0.2 (inside the deadzone) doesn't, holding A jumps 66 px, and RT and Start register.
+- Screenshots:
+  - 1280×720 desktop: no overlay, no rotate card.
+  - 740×360 mobile landscape (touch emulation): overlay visible, all targets ≥56 px, nothing overlaps.
+  - 375×812 portrait: rotate card shown, controls hidden, no scroll.
+  - No console errors.
+
+**Known issues / not verified:**
+- **844×390 (iPhone 14 landscape) couldn't be checked with the overlay.** The built-in browser only emulates a touch device (`pointer: coarse`) below 768 px wide, so I used 740×360, which is smaller and tighter. At 844×390 without touch emulation, the game renders as before.
+- **Not verified on real hardware:** real multitouch (several simultaneous fingers on iOS/Android), finger sliding on a physical screen, iOS Safari zoom/long-press suppression, safe-area insets on a notched phone, haptics (no vibration API in emulation, and none at all on iOS), and a physical gamepad (only the mapping was tested, with a fake pad). These need a check on a device over `pnpm dev --host`.
+- Non-standard gamepad mappings are read with standard button indices, as a best effort.
+- `pause` is only an action so far. Nothing listens for it until the pause menu (milestone 7). Turning to portrait doesn't pause the game either. It should once a pause state exists.
+- The overlay sits over the play area (the D-pad covers the bottom-left of the view at spawn). Fine for now. Revisit during the art pass, and maybe add an opacity setting.
+
+## Next: Milestone 3 — Combat
+- Proton stream (hold fire) with tether, a basic ghost enemy, trap throw and capture.
+- HP (proton-pack battery pips), damage with hit-stop and `vibrate()` on hit, death and respawn.

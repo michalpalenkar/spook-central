@@ -10,6 +10,14 @@ body,
   height: 100%;
   overflow: hidden;
   background: #05060c;
+  /* No scrolling, zooming, text selection, callouts or tap flashes: the whole
+     page is a game surface. */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .game-container {

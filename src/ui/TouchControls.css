@@ -1,0 +1,174 @@
+.touch-controls {
+  --touch-cell: 56px;
+  --touch-button: 62px;
+  --touch-gap: 18px;
+  --touch-fill: rgba(200, 210, 235, 0.1);
+  --touch-line: rgba(220, 228, 245, 0.32);
+  --touch-ink: rgba(225, 232, 248, 0.6);
+  --touch-held-fill: rgba(125, 255, 106, 0.28);
+  --touch-held-line: rgba(125, 255, 106, 0.85);
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--touch-ink);
+}
+
+.touch-dpad,
+.touch-button,
+.touch-pause {
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* D-pad: one round hit area; the arms only show which directions are held. */
+.touch-dpad {
+  position: absolute;
+  left: calc(env(safe-area-inset-left) + var(--touch-gap));
+  bottom: calc(env(safe-area-inset-bottom) + var(--touch-gap));
+  width: calc(var(--touch-cell) * 3);
+  height: calc(var(--touch-cell) * 3);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200, 210, 235, 0.06) 0 55%, rgba(200, 210, 235, 0.02) 70%);
+  box-shadow: inset 0 0 0 1px var(--touch-line);
+}
+
+.touch-dpad-arm {
+  position: absolute;
+  width: var(--touch-cell);
+  height: var(--touch-cell);
+  box-sizing: border-box;
+  border: 1px solid var(--touch-line);
+  border-radius: 10px;
+  background: var(--touch-fill);
+}
+
+.touch-dpad-arm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+}
+
+.touch-dpad-up {
+  left: var(--touch-cell);
+  top: 0;
+}
+.touch-dpad-up::after {
+  border-bottom-color: var(--touch-ink);
+  transform: translateY(-4px);
+}
+.touch-dpad-down {
+  left: var(--touch-cell);
+  bottom: 0;
+}
+.touch-dpad-down::after {
+  border-top-color: var(--touch-ink);
+  transform: translateY(4px);
+}
+.touch-dpad-left {
+  left: 0;
+  top: var(--touch-cell);
+}
+.touch-dpad-left::after {
+  border-right-color: var(--touch-ink);
+  transform: translateX(-4px);
+}
+.touch-dpad-right {
+  right: 0;
+  top: var(--touch-cell);
+}
+.touch-dpad-right::after {
+  border-left-color: var(--touch-ink);
+  transform: translateX(4px);
+}
+
+.touch-dpad-hub {
+  position: absolute;
+  inset: var(--touch-cell);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(220, 228, 245, 0.16);
+}
+
+/* Action buttons: a diamond of four. */
+.touch-actions {
+  position: absolute;
+  right: calc(env(safe-area-inset-right) + var(--touch-gap));
+  bottom: calc(env(safe-area-inset-bottom) + var(--touch-gap));
+  width: calc(var(--touch-button) * 2.8);
+  height: calc(var(--touch-button) * 2.8);
+}
+
+.touch-button {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-button);
+  height: var(--touch-button);
+  box-sizing: border-box;
+  border: 1px solid var(--touch-line);
+  border-radius: 50%;
+  background: var(--touch-fill);
+  font-size: 15px;
+}
+
+.touch-slot-top {
+  top: 0;
+  left: calc(50% - var(--touch-button) / 2);
+}
+.touch-slot-bottom {
+  bottom: 0;
+  left: calc(50% - var(--touch-button) / 2);
+}
+.touch-slot-left {
+  left: 0;
+  top: calc(50% - var(--touch-button) / 2);
+}
+.touch-slot-right {
+  right: 0;
+  top: calc(50% - var(--touch-button) / 2);
+}
+
+/* Pause: top-right corner, outside the notch. */
+.touch-pause {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px);
+  right: calc(env(safe-area-inset-right) + 8px);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-cell);
+  height: var(--touch-cell);
+  box-sizing: border-box;
+  border: 1px solid var(--touch-line);
+  border-radius: 12px;
+  background: var(--touch-fill);
+}
+
+.touch-pause span {
+  width: 5px;
+  height: 18px;
+  border-radius: 1px;
+  background: var(--touch-ink);
+}
+
+.touch-controls .is-held {
+  border-color: var(--touch-held-line);
+  background: var(--touch-held-fill);
+  color: rgba(225, 255, 220, 0.95);
+}
+
+@media (orientation: portrait) {
+  .touch-controls {
+    display: none;
+  }
+}

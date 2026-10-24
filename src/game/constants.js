@@ -55,3 +55,23 @@ export const CAMERA = {
   DEADZONE_WIDTH: 32,
   DEADZONE_HEIGHT: 48,
 }
+
+export const TOUCH = {
+  // Fraction of the D-pad radius around its centre that registers no direction.
+  DPAD_DEADZONE: 0.22,
+  // Half-width of each diagonal sector, in degrees. Inside it both directions
+  // are held; outside it only the nearest one.
+  DPAD_DIAGONAL_HALF_ANGLE: 22.5,
+}
+
+export const GAMEPAD = {
+  // Stick deflection (0..1) below which an axis reads as centred.
+  STICK_DEADZONE: 0.35,
+  // Analog trigger value above which it counts as pressed.
+  TRIGGER_THRESHOLD: 0.4,
+}
+
+// Vibration lengths in ms, for navigator.vibrate.
+export const HAPTICS = {
+  HIT: 40,
+}

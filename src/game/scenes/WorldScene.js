@@ -5,6 +5,7 @@ import { Player } from '../entities/Player.js'
 import { parseRoom } from '../levels/parseRoom.js'
 import { TEST_ROOM } from '../levels/testRoom.js'
 import { buildRoom, roomCollisionFilter } from '../systems/buildRoom.js'
+import { GamepadInput } from '../systems/GamepadInput.js'
 import { InputState } from '../systems/InputState.js'
 import { KeyboardInput } from '../systems/KeyboardInput.js'
 
@@ -21,6 +22,9 @@ export class WorldScene extends Phaser.Scene {
 
     this.inputState = new InputState()
     this.inputState.addSource(new KeyboardInput(this.input.keyboard))
+    this.inputState.addSource(new GamepadInput())
+    const touchInput = this.registry.get('touchInput')
+    if (touchInput) this.inputState.addSource(touchInput)
 
     const spawnX = (room.spawn.x + 0.5) * TILE_SIZE
     const spawnFeetY = (room.spawn.y + 1) * TILE_SIZE

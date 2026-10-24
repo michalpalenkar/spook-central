@@ -7,7 +7,10 @@ import { WorldScene } from './scenes/WorldScene.js'
 // The canvas renders at the fixed internal resolution and is upscaled with
 // nearest-neighbour filtering, so the device pixel ratio never changes the
 // render cost.
-export function createGameConfig(parent) {
+//
+// `touchInput` is the TouchInput the React touch overlay writes to; it is put
+// in the game registry so scenes can add it as an InputState source.
+export function createGameConfig(parent, { touchInput } = {}) {
   return {
     type: Phaser.AUTO,
     parent,
@@ -25,6 +28,9 @@ export function createGameConfig(parent) {
       default: 'arcade',
       // Gravity is applied by systems/movement.js so it can be unit-tested.
       arcade: { gravity: { x: 0, y: 0 } },
+    },
+    callbacks: {
+      preBoot: (game) => game.registry.set('touchInput', touchInput),
     },
     scene: [PreloadScene, WorldScene],
   }

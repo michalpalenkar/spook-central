@@ -1,0 +1,66 @@
+.rotate-device {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  background: radial-gradient(ellipse at 50% 40%, #161c30 0%, #05060c 70%);
+  color: #c9d0e2;
+  font-family: Georgia, 'Times New Roman', serif;
+  text-align: center;
+}
+
+.rotate-device-icon {
+  width: 96px;
+  height: 96px;
+  fill: none;
+  stroke: #7dff6a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px rgba(125, 255, 106, 0.45));
+  animation: rotate-device-tilt 2.4s ease-in-out infinite;
+}
+
+.rotate-device-title {
+  margin: 20px 0 6px;
+  font-size: 22px;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+.rotate-device-hint {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+@keyframes rotate-device-tilt {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+  50%,
+  80% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  .rotate-device {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-device-icon {
+    animation: none;
+  }
+}
